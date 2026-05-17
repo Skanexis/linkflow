@@ -249,13 +249,6 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
         maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%)",
       };
     }
-    if (pattern === "equalizer") {
-      return {
-        backgroundImage: `linear-gradient(90deg, ${theme.primaryColor}22 0 10%, transparent 10% 18%, ${theme.textColor}12 18% 26%, transparent 26% 36%)`,
-        backgroundSize: isPreview ? "46px 100%" : "72px 100%",
-        maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65), transparent 78%)",
-      };
-    }
     return {
       backgroundImage: `linear-gradient(${theme.primaryColor}14 1px, transparent 1px), linear-gradient(90deg, ${theme.primaryColor}10 1px, transparent 1px)`,
       backgroundSize: isPreview ? "28px 28px" : "42px 42px",
@@ -488,11 +481,6 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
       {hasMusicWidget && theme.animationPack !== "minimal" && (
         <div className="music-reactive-field absolute inset-0 overflow-hidden pointer-events-none">
           <div className="music-reactive-wave absolute" style={{ background: `radial-gradient(circle, ${activeMusicTrack?.color ?? theme.primaryColor}3a, transparent 62%)` }} />
-          <div className="music-reactive-bars absolute inset-x-0 bottom-0 flex items-end justify-center gap-1.5">
-            {Array.from({ length: 18 }).map((_, index) => (
-              <span key={index} style={{ animationDelay: `${index * 0.045}s` }} />
-            ))}
-          </div>
         </div>
       )}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

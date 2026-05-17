@@ -217,7 +217,6 @@ Resolve-DnsName sib2._domainkey.flowlinks.org CNAME
 3. Скопируй SMTP server.
 4. Скопируй login.
 5. Создай или скопируй SMTP key/password.
-
 Для Brevo обычно:
 
 ```env

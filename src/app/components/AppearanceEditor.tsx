@@ -31,13 +31,13 @@ const PRESET_THEMES: ThemePreset[] = [
   { name: "Clean Slate", mood: "light", bg1: "#e2e8f0", bg2: "#f8fafc", primary: "#0f172a", text: "#0f172a", type: "gradient", pattern: "grid", widgetStyle: "solid", animationPack: "minimal" },
   { name: "Terminal", mood: "live code", bg1: "#020617", bg2: "#052e16", primary: "#22c55e", text: "#dcfce7", type: "solid", pattern: "grid", widgetStyle: "outline", animationPack: "beat", profileStyle: "terminal" },
   { name: "Hotline", mood: "night drive", bg1: "#12091f", bg2: "#be123c", primary: "#fb923c", text: "#fff7ed", type: "animated", pattern: "rays", widgetStyle: "neon", animationPack: "club" },
-  { name: "Synthwave FM", mood: "retro synth", bg1: "#080012", bg2: "#30105d", primary: "#ff2bd6", text: "#fdf4ff", type: "animated", pattern: "equalizer", widgetStyle: "neon", buttonStyle: "neon", hoverEffect: "glow", animationPack: "beat" },
-  { name: "Bassline Club", mood: "club set", bg1: "#030712", bg2: "#042f2e", primary: "#14f195", text: "#ecfeff", type: "animated", pattern: "equalizer", widgetStyle: "neon", buttonStyle: "glass", hoverEffect: "bounce", animationPack: "club" },
+  { name: "Synthwave FM", mood: "retro synth", bg1: "#080012", bg2: "#30105d", primary: "#ff2bd6", text: "#fdf4ff", type: "animated", pattern: "rays", widgetStyle: "neon", buttonStyle: "neon", hoverEffect: "glow", animationPack: "beat" },
+  { name: "Bassline Club", mood: "club set", bg1: "#030712", bg2: "#042f2e", primary: "#14f195", text: "#ecfeff", type: "animated", pattern: "grid", widgetStyle: "neon", buttonStyle: "glass", hoverEffect: "bounce", animationPack: "club" },
   { name: "Lo-Fi Tape", mood: "chill beats", bg1: "#14100d", bg2: "#3b2f2f", primary: "#f4a261", text: "#fff7ed", type: "gradient", pattern: "waves", widgetStyle: "solid", buttonStyle: "soft", hoverEffect: "tilt", animationPack: "waveform" },
   { name: "Disco Gold", mood: "funk", bg1: "#120f08", bg2: "#4a2f06", primary: "#facc15", text: "#fefce8", type: "animated", pattern: "dots", widgetStyle: "glass", buttonStyle: "pill", hoverEffect: "bounce", animationPack: "pop" },
   { name: "Midnight R&B", mood: "slow jam", bg1: "#09090b", bg2: "#312e81", primary: "#c4b5fd", text: "#f5f3ff", type: "gradient", pattern: "stars", widgetStyle: "glass", buttonStyle: "glass", hoverEffect: "glow", animationPack: "smooth" },
   { name: "Indie Stage", mood: "band", bg1: "#101512", bg2: "#4d2f19", primary: "#fb7185", text: "#fff7ed", type: "gradient", pattern: "rays", widgetStyle: "solid", buttonStyle: "rounded", hoverEffect: "slide", animationPack: "cinematic" },
-  { name: "Hyperpop", mood: "fast bpm", bg1: "#16051f", bg2: "#005f73", primary: "#00f5d4", text: "#f8fafc", type: "animated", pattern: "equalizer", widgetStyle: "neon", buttonStyle: "neon", hoverEffect: "expand", animationPack: "club" },
+  { name: "Hyperpop", mood: "fast bpm", bg1: "#16051f", bg2: "#005f73", primary: "#00f5d4", text: "#f8fafc", type: "animated", pattern: "waves", widgetStyle: "neon", buttonStyle: "neon", hoverEffect: "expand", animationPack: "club" },
   { name: "Warehouse", mood: "techno", bg1: "#050505", bg2: "#1f2937", primary: "#f43f5e", text: "#f8fafc", type: "animated", pattern: "grid", widgetStyle: "outline", buttonStyle: "brutal", hoverEffect: "glow", animationPack: "beat" },
   { name: "Jazz Velvet", mood: "late night", bg1: "#0c0a09", bg2: "#451a03", primary: "#d97706", text: "#fffbeb", type: "gradient", pattern: "waves", widgetStyle: "glass", buttonStyle: "underline", hoverEffect: "slide", animationPack: "cinematic", profileStyle: "editorial" },
   { name: "Festival Dawn", mood: "anthem", bg1: "#051923", bg2: "#7c2d12", primary: "#2dd4bf", text: "#fff7ed", type: "animated", pattern: "rays", widgetStyle: "glass", buttonStyle: "soft", hoverEffect: "bounce", animationPack: "waveform" },
@@ -105,6 +105,7 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
     };
     reader.readAsDataURL(file);
   };
+  const currentPattern = String(theme.backgroundPattern ?? "grid") === "equalizer" ? "grid" : theme.backgroundPattern ?? "grid";
 
   return (
     <div className="space-y-5">
@@ -171,12 +172,9 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
                     >
                       <div className="absolute left-1/2 top-2 h-2 w-10 -translate-x-1/2 rounded-full" style={{ background: "rgba(0,0,0,0.36)" }} />
                       <div className="absolute left-1/2 top-6 h-6 w-6 -translate-x-1/2 rounded-full" style={{ background: `linear-gradient(135deg, ${preset.primary}, ${preset.text}80)` }} />
-                      <div className="absolute bottom-3 left-3 right-3 rounded-lg" style={{ height: "25px", background: `${preset.text}14`, border: `1px solid ${preset.text}18` }}>
-                        <div className="absolute bottom-1.5 left-2 right-2 flex items-end gap-1">
-                          {[0.38, 0.75, 0.52, 0.92, 0.44].map((level, index) => (
-                            <span key={index} className="block flex-1 rounded-full" style={{ height: `${level * 16}px`, background: preset.primary }} />
-                          ))}
-                        </div>
+                      <div className="absolute bottom-3 left-3 right-3 rounded-lg px-2 py-1.5" style={{ height: "25px", background: `${preset.text}14`, border: `1px solid ${preset.text}18` }}>
+                        <div className="h-1.5 w-2/3 rounded-full" style={{ background: `${preset.primary}cc` }} />
+                        <div className="mt-1 h-1 w-1/2 rounded-full" style={{ background: `${preset.text}35` }} />
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2">
@@ -232,7 +230,7 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
 
           <Panel title="Pattern">
             <Segmented
-              value={theme.backgroundPattern ?? "grid"}
+              value={currentPattern}
               options={[
                 ["none", "None"],
                 ["grid", "Grid"],
@@ -240,7 +238,6 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
                 ["stars", "Stars"],
                 ["rays", "Rays"],
                 ["waves", "Waves"],
-                ["equalizer", "EQ"],
               ]}
               onChange={(value) => onUpdate({ backgroundPattern: value as NonNullable<ProfileTheme["backgroundPattern"]> })}
             />

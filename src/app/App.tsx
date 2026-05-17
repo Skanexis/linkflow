@@ -49,7 +49,7 @@ export interface ProfileTheme {
   primaryColor: string;
   textColor: string;
   backgroundImage?: string;
-  backgroundPattern?: 'none' | 'grid' | 'dots' | 'stars' | 'rays' | 'waves' | 'equalizer';
+  backgroundPattern?: 'none' | 'grid' | 'dots' | 'stars' | 'rays' | 'waves';
   backgroundOverlay?: number;
   profileStyle?: 'halo' | 'editorial' | 'terminal' | 'poster';
   widgetStyle?: 'glass' | 'solid' | 'outline' | 'neon';

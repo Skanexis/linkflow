@@ -87,35 +87,6 @@ body {
   }
 }
 
-@keyframes musicBars {
-  0%, 100% {
-    height: 12%;
-    opacity: 0.16;
-  }
-
-  35% {
-    height: 82%;
-    opacity: 0.42;
-  }
-
-  64% {
-    height: 34%;
-    opacity: 0.24;
-  }
-}
-
-@keyframes musicEqualizerBar {
-  0%, 100% {
-    transform: scaleY(0.62);
-    opacity: 0.62;
-  }
-
-  45% {
-    transform: scaleY(1.08);
-    opacity: 1;
-  }
-}
-
 .music-playing {
   animation: musicRhythm var(--music-bar-duration, 1.4s) ease-in-out infinite;
 }
@@ -147,40 +118,6 @@ body {
   animation: musicWaveDrift var(--music-bar-duration, 3s) ease-in-out infinite;
 }
 
-.music-reactive-bars {
-  height: 24%;
-  padding: 0 max(14px, env(safe-area-inset-left)) 0 max(14px, env(safe-area-inset-right));
-  opacity: 0.7;
-}
-
-.music-reactive-bars span {
-  width: min(4.5vw, 18px);
-  max-width: 18px;
-  min-height: 10%;
-  border-radius: 999px 999px 0 0;
-  background: linear-gradient(to top, transparent, var(--music-accent, #1db954));
-  animation: musicBars var(--music-beat-duration, 0.7s) ease-in-out infinite;
-}
-
-.profile-app-shell[data-animation-pack="waveform"] .music-reactive-bars span {
-  animation-duration: var(--music-bar-duration, 3s);
-}
-
-.profile-app-shell[data-animation-pack="club"] .music-reactive-bars span {
-  opacity: 0.95;
-  filter: saturate(1.25);
-}
-
-.music-eq-bar {
-  flex: 1 1 0;
-  min-width: 0;
-  border-radius: 999px;
-  transform-origin: bottom;
-  background: linear-gradient(to top, color-mix(in srgb, var(--track-accent, #1db954) 60%, transparent), var(--track-accent, #1db954));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--track-accent, #1db954) 30%, transparent);
-  animation: musicEqualizerBar var(--track-beat, 1s) ease-in-out infinite;
-}
-
 @keyframes profileOrbit {
   0% {
     transform: rotate(0deg) scale(1);
@@ -196,10 +133,6 @@ body {
     transform: rotate(360deg) scale(1);
     border-color: rgba(255, 255, 255, 0.24);
   }
-}
-
-.profile-app-shell {
-  scrollbar-gutter: stable both-edges;
 }
 
 .profile-app-shell *,
@@ -389,8 +322,6 @@ body {
   .music-playing,
   .music-widget-pulse,
   .music-reactive-wave,
-  .music-reactive-bars span,
-  .music-eq-bar,
   .profile-widget-card {
     animation: none !important;
   }

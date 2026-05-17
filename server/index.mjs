@@ -144,7 +144,7 @@ const themeSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   backgroundImage: z.string().max(900000).optional().or(z.literal("")),
-  backgroundPattern: z.enum(["none", "grid", "dots", "stars", "rays", "waves", "equalizer"]).optional(),
+  backgroundPattern: z.enum(["none", "grid", "dots", "stars", "rays", "waves"]).optional(),
   backgroundOverlay: z.number().min(0).max(90).optional(),
   profileStyle: z.enum(["halo", "editorial", "terminal", "poster"]).optional(),
   widgetStyle: z.enum(["glass", "solid", "outline", "neon"]).optional(),
