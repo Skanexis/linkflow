@@ -66,8 +66,10 @@ The server serves `dist/` and exposes the API under `/api`. Set these environmen
 ```bash
 PORT=8787
 JWT_SECRET=<long-random-secret>
+ADMIN_EMAILS=admin@flowlinks.org
 DATA_DIR=/persistent/data/path
 CORS_ORIGIN=https://flowlinks.org
+VITE_PUBLIC_APP_URL=https://flowlinks.org
 ```
 
 ## Local Demo Account

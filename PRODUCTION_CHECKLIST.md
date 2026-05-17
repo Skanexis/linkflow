@@ -20,6 +20,7 @@
 ## Required Environment
 
 - `JWT_SECRET` must be set to a long random value.
+- `ADMIN_EMAILS` must list the confirmed account emails allowed to open `/admin`.
 - `DATA_DIR` must point to persistent storage.
 - `CORS_ORIGIN` should be set to the production frontend origin.
 - Run behind HTTPS in production.

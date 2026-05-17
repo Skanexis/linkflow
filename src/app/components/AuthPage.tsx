@@ -15,6 +15,8 @@ const AUTH_THEME = {
   coral: "#ef4444",
 };
 
+const PUBLIC_BASE_URL = String(import.meta.env.VITE_PUBLIC_APP_URL ?? "https://flowlinks.org").replace(/\/+$/, "");
+
 interface AuthPageProps {
   mode: "login" | "register";
   onModeChange: (mode: "login" | "register") => void;
@@ -238,7 +240,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                   <p className="text-red-400 mt-1.5" style={{ fontSize: "12px" }}>{errors.username}</p>
                 ) : username.length >= 3 ? (
                   <p className="mt-1.5" style={{ color: AUTH_THEME.soft, fontSize: "12px" }}>
-                    linkflow.io/{username}
+                    {PUBLIC_BASE_URL.replace(/^https?:\/\//, "")}/{username}
                   </p>
                 ) : null}
               </div>

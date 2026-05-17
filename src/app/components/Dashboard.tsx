@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import type { UserProfile, LinkItem, ProfileTheme, WidgetItem } from "../App";
@@ -37,6 +38,8 @@ interface DashboardProps {
   onUpdateWidget: (id: string, u: Partial<WidgetItem>) => void;
   onRemoveWidget: (id: string) => void;
   onViewProfile: () => void;
+  canOpenAdmin?: boolean;
+  onOpenAdmin?: () => void;
   onLogout: () => void;
 }
 
@@ -84,6 +87,8 @@ export function Dashboard({
   onUpdateWidget,
   onRemoveWidget,
   onViewProfile,
+  canOpenAdmin,
+  onOpenAdmin,
   onLogout,
 }: DashboardProps) {
   const [section, setSection] = useState<Section>("links");
@@ -255,6 +260,24 @@ export function Dashboard({
             <ExternalLink size={14} />
             {!isTablet && "View live page"}
           </button>
+          {canOpenAdmin && onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              className="flex items-center rounded-xl transition-all text-left"
+              style={{ fontSize: "13px", color: "#c084fc", gap: isTablet ? 0 : "12px", justifyContent: isTablet ? "center" : "flex-start", width: isMobile ? "44px" : "100%", padding: isTablet ? "10px" : "10px 12px" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.color = DASH_THEME.text;
+                (e.currentTarget as HTMLElement).style.background = "rgba(168,85,247,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.color = "#c084fc";
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+            >
+              <ShieldCheck size={14} />
+              {!isTablet && "Admin"}
+            </button>
+          )}
           <button
             onClick={onLogout}
             className="flex items-center rounded-xl transition-all text-left"

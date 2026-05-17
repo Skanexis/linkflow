@@ -28,6 +28,12 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? "";
 const googleRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? `${publicApiUrl}/api/oauth/google/callback`).trim();
 const googleOAuthEnabled = process.env.GOOGLE_OAUTH_ENABLED === "true" || Boolean(googleClientId && googleClientSecret);
+const adminEmails = new Set(
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
 const mailFromName = process.env.MAIL_FROM_NAME ?? "LinkFlow";
 const mailFrom = process.env.MAIL_FROM ?? process.env.SMTP_USER ?? "no-reply@linkflow.local";
 const verificationTokenTtlMs = Number(process.env.EMAIL_VERIFICATION_TTL_HOURS ?? 24) * 60 * 60 * 1000;
@@ -180,6 +186,12 @@ function hashToken(token) {
 
 function isEmailVerified(user) {
   return Boolean(user.emailVerifiedAt) || !Object.prototype.hasOwnProperty.call(user, "emailVerifiedAt");
+}
+
+function isAdminUser(user) {
+  if (!user?.email) return false;
+  if (!isProduction && user.email === "demo@linkflow.local") return true;
+  return adminEmails.has(String(user.email).toLowerCase());
 }
 
 function initialsFromUsername(username) {
@@ -474,7 +486,7 @@ async function mutateState(fn) {
 }
 
 function publicUser(user) {
-  return { id: user.id, email: user.email, username: user.username };
+  return { id: user.id, email: user.email, username: user.username, isAdmin: isAdminUser(user) };
 }
 
 function snapshotForUser(state, user) {
@@ -517,6 +529,17 @@ async function requireAuth(req, _res, next) {
     next();
   } catch (error) {
     next(Object.assign(error, { status: error.status ?? 401 }));
+  }
+}
+
+function requireAdmin(req, _res, next) {
+  try {
+    if (!isAdminUser(req.auth?.user)) {
+      throw Object.assign(new Error("Admin access is required."), { status: 403 });
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -567,6 +590,68 @@ function analyticsFor(state, user) {
     countryData: Object.entries(countryCounts)
       .map(([country, visits]) => ({ country, visits }))
       .sort((a, b) => b.visits - a.visits),
+  };
+}
+
+function clickCountForUser(state, userId) {
+  const storedClicks = Object.values(state.analytics[userId] ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const eventClicks = (state.analyticsEvents[userId] ?? []).length;
+  return storedClicks + eventClicks;
+}
+
+function pendingVerificationForUser(state, userId) {
+  const records = Object.values(state.emailVerificationTokens ?? {}).filter((record) => record.userId === userId);
+  if (records.length === 0) return null;
+  const activeRecords = records.filter((record) => new Date(record.expiresAt).getTime() > Date.now());
+  const nextExpiry = activeRecords
+    .map((record) => record.expiresAt)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0] ?? null;
+  return {
+    tokens: records.length,
+    activeTokens: activeRecords.length,
+    expiresAt: nextExpiry,
+  };
+}
+
+function adminUsersFor(state) {
+  const users = state.users
+    .map((user) => {
+      const links = state.links[user.id] ?? [];
+      const widgets = state.widgets[user.id] ?? [];
+      const providers = Object.keys(user.oauthProviders ?? {});
+      const verified = isEmailVerified(user);
+
+      return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: state.profiles[user.id]?.displayName ?? user.username,
+        createdAt: user.createdAt ?? null,
+        emailVerifiedAt: user.emailVerifiedAt ?? null,
+        isEmailVerified: verified,
+        isAdmin: isAdminUser(user),
+        authProviders: providers.length > 0 ? providers : ["password"],
+        linksCount: links.length,
+        visibleLinksCount: links.filter((link) => link.visible).length,
+        widgetsCount: widgets.length,
+        visibleWidgetsCount: widgets.filter((widget) => widget.visible).length,
+        totalClicks: clickCountForUser(state, user.id),
+        pendingVerification: verified ? null : pendingVerificationForUser(state, user.id),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+
+  return {
+    summary: {
+      totalUsers: users.length,
+      verifiedUsers: users.filter((user) => user.isEmailVerified).length,
+      unverifiedUsers: users.filter((user) => !user.isEmailVerified).length,
+      adminUsers: users.filter((user) => user.isAdmin).length,
+      oauthUsers: users.filter((user) => user.authProviders.some((provider) => provider !== "password")).length,
+      totalLinks: users.reduce((sum, user) => sum + user.linksCount, 0),
+      totalClicks: users.reduce((sum, user) => sum + user.totalClicks, 0),
+    },
+    users,
   };
 }
 
@@ -896,6 +981,10 @@ app.post("/api/auth/social", authLimiter, async (req, res, next) => {
 
 app.get("/api/auth/session", requireAuth, (req, res) => {
   res.json({ snapshot: snapshotForUser(req.auth.state, req.auth.user) });
+});
+
+app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
+  res.json(adminUsersFor(req.auth.state));
 });
 
 app.get("/api/public/:username", async (req, res, next) => {

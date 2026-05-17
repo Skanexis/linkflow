@@ -6,8 +6,9 @@ const LandingPage = lazy(() => import("./components/LandingPage").then((module) 
 const AuthPage = lazy(() => import("./components/AuthPage").then((module) => ({ default: module.AuthPage })));
 const Dashboard = lazy(() => import("./components/Dashboard").then((module) => ({ default: module.Dashboard })));
 const PublicProfile = lazy(() => import("./components/PublicProfile").then((module) => ({ default: module.PublicProfile })));
+const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
 
-export type AppView = 'landing' | 'auth' | 'dashboard' | 'profile' | 'public';
+export type AppView = 'landing' | 'auth' | 'dashboard' | 'profile' | 'public' | 'admin';
 
 export interface UserProfile {
   displayName: string;
@@ -117,13 +118,16 @@ export default function App() {
   const [links, setLinks] = useState<LinkItem[]>(defaultLinks);
   const [theme, setTheme] = useState<ProfileTheme>(defaultTheme);
   const [widgets, setWidgets] = useState<WidgetItem[]>(defaultWidgets);
+  const [currentUser, setCurrentUser] = useState<backend.AuthUser | null>(null);
   const [publicProfile, setPublicProfile] = useState<backend.PublicProfileSnapshot | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [openAdminAfterAuth, setOpenAdminAfterAuth] = useState(false);
   const [appError, setAppError] = useState<string | null>(null);
 
   const applySnapshot = useCallback((snapshot: backend.AppSnapshot) => {
+    setCurrentUser(snapshot.user);
     setProfile(snapshot.profile);
     setLinks(snapshot.links);
     setTheme(snapshot.theme);
@@ -180,7 +184,30 @@ export default function App() {
     }
 
     const username = window.location.pathname.split("/").filter(Boolean)[0];
-    const reserved = new Set(["api", "assets", "dashboard", "auth"]);
+    if (username === "admin") {
+      setOpenAdminAfterAuth(true);
+      backend.getSession().then((snapshot) => {
+        if (!snapshot) {
+          setAuthMode("login");
+          setAuthNotice("Sign in with an admin account to open the admin panel.");
+          setView("auth");
+          return;
+        }
+
+        applySnapshot(snapshot);
+        if (snapshot.user.isAdmin) {
+          setOpenAdminAfterAuth(false);
+          setView("admin");
+        } else {
+          setOpenAdminAfterAuth(false);
+          setAppError("Admin access is required.");
+          setView("dashboard");
+        }
+      });
+      return;
+    }
+
+    const reserved = new Set(["api", "assets", "dashboard", "auth", "admin"]);
     if (username && !reserved.has(username)) {
       backend
         .getPublicProfile(username)
@@ -218,12 +245,23 @@ export default function App() {
         }
         const snapshot = await backend.login({ email: input.email, password: input.password });
         applySnapshot(snapshot);
+        if (openAdminAfterAuth) {
+          setOpenAdminAfterAuth(false);
+          if (snapshot.user.isAdmin) {
+            window.history.replaceState(null, "", "/admin");
+            setView("admin");
+          } else {
+            setAppError("Admin access is required.");
+            setView("dashboard");
+          }
+          return;
+        }
         setView("dashboard");
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : "Authentication failed.");
       }
     },
-    [applySnapshot]
+    [applySnapshot, openAdminAfterAuth]
   );
 
   const handleResendVerification = useCallback(async (email: string) => {
@@ -306,7 +344,32 @@ export default function App() {
 
   const handleLogout = useCallback(async () => {
     await backend.logout();
+    setCurrentUser(null);
+    setOpenAdminAfterAuth(false);
+    if (window.location.pathname === "/admin") {
+      window.history.replaceState(null, "", "/");
+    }
     setView("landing");
+  }, []);
+
+  const handleOpenAdmin = useCallback(() => {
+    window.history.pushState(null, "", "/admin");
+    setView("admin");
+  }, []);
+
+  const handleCloseAdmin = useCallback(() => {
+    window.history.pushState(null, "", "/");
+    setView("dashboard");
+  }, []);
+
+  const handleViewProfile = useCallback(() => {
+    window.history.pushState(null, "", `/${encodeURIComponent(profile.username)}`);
+    setView("profile");
+  }, [profile.username]);
+
+  const handleCloseProfile = useCallback(() => {
+    window.history.pushState(null, "", "/");
+    setView("dashboard");
   }, []);
 
   const shellClassName =
@@ -361,7 +424,15 @@ export default function App() {
             onAddWidget={addWidget}
             onUpdateWidget={updateWidget}
             onRemoveWidget={removeWidget}
-            onViewProfile={() => setView('profile')}
+            onViewProfile={handleViewProfile}
+            canOpenAdmin={Boolean(currentUser?.isAdmin)}
+            onOpenAdmin={handleOpenAdmin}
+            onLogout={handleLogout}
+          />
+        )}
+        {view === 'admin' && (
+          <AdminPanel
+            onBack={handleCloseAdmin}
             onLogout={handleLogout}
           />
         )}
@@ -371,7 +442,7 @@ export default function App() {
             links={links}
             theme={theme}
             widgets={widgets}
-            onBack={() => setView('dashboard')}
+            onBack={handleCloseProfile}
             isPreview={false}
           />
         )}

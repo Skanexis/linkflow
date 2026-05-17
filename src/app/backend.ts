@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   email: string;
   username: string;
+  isAdmin?: boolean;
 }
 
 export interface AppSnapshot {
@@ -33,6 +34,41 @@ export interface AnalyticsSummary {
   countryData: { country: string; visits: number }[];
 }
 
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  username: string;
+  displayName: string;
+  createdAt: string | null;
+  emailVerifiedAt: string | null;
+  isEmailVerified: boolean;
+  isAdmin: boolean;
+  authProviders: string[];
+  linksCount: number;
+  visibleLinksCount: number;
+  widgetsCount: number;
+  visibleWidgetsCount: number;
+  totalClicks: number;
+  pendingVerification: {
+    tokens: number;
+    activeTokens: number;
+    expiresAt: string | null;
+  } | null;
+}
+
+export interface AdminUsersResponse {
+  summary: {
+    totalUsers: number;
+    verifiedUsers: number;
+    unverifiedUsers: number;
+    adminUsers: number;
+    oauthUsers: number;
+    totalLinks: number;
+    totalClicks: number;
+  };
+  users: AdminUserRow[];
+}
+
 interface AnalyticsEvent {
   id: string;
   linkId: string;
@@ -43,6 +79,8 @@ interface AnalyticsEvent {
 interface StoredUser extends AuthUser {
   password: string;
   emailVerifiedAt?: string | null;
+  createdAt?: string;
+  oauthProviders?: Record<string, string>;
 }
 
 interface StoredState {
@@ -61,6 +99,12 @@ const STORAGE_KEY = "linkflow.backend.v1";
 const API_TOKEN_KEY = "linkflow.api.token";
 const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 const API_BASE_URL = configuredApiBaseUrl || (import.meta.env.PROD ? "/api" : "");
+const configuredAdminEmails = new Set(
+  String(import.meta.env.VITE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 const defaultProfile: UserProfile = {
   displayName: "New Creator",
@@ -167,6 +211,7 @@ function initialState(): StoredState {
     username: defaultProfile.username,
     password: "password",
     emailVerifiedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
   };
 
   return {
@@ -216,6 +261,11 @@ function isEmailVerified(user: StoredUser) {
   return Boolean(user.emailVerifiedAt) || !Object.prototype.hasOwnProperty.call(user, "emailVerifiedAt");
 }
 
+function isAdminUser(user: StoredUser | AuthUser) {
+  if (!import.meta.env.PROD && user.email === "demo@linkflow.local") return true;
+  return configuredAdminEmails.has(user.email.toLowerCase());
+}
+
 function requireCurrentUser(state: StoredState) {
   const user = state.users.find((u) => u.id === state.currentUserId);
   if (!user) throw new Error("You must be signed in.");
@@ -224,7 +274,7 @@ function requireCurrentUser(state: StoredState) {
 
 function snapshotForUser(state: StoredState, user: AuthUser): AppSnapshot {
   return {
-    user: { id: user.id, email: user.email, username: user.username },
+    user: { id: user.id, email: user.email, username: user.username, isAdmin: isAdminUser(user) },
     profile: clone(state.profiles[user.id] ?? defaultProfile),
     links: clone(state.links[user.id] ?? defaultLinks),
     theme: clone(state.themes[user.id] ?? defaultTheme),
@@ -252,6 +302,64 @@ function dateKey(date: Date) {
 function detectCountry() {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale;
   return locale.match(/-([A-Z]{2})$/)?.[1] ?? "Unknown";
+}
+
+function clickCountForUser(state: StoredState, userId: string) {
+  const storedClicks = Object.values(state.analytics[userId] ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const eventClicks = getAnalyticsEvents(state, userId).length;
+  return storedClicks + eventClicks;
+}
+
+function pendingVerificationForUser(state: StoredState, userId: string) {
+  const records = Object.values(getEmailVerificationTokens(state)).filter((record) => record.userId === userId);
+  if (records.length === 0) return null;
+  const activeRecords = records.filter((record) => new Date(record.expiresAt).getTime() > Date.now());
+  const expiresAt = activeRecords
+    .map((record) => record.expiresAt)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0] ?? null;
+  return { tokens: records.length, activeTokens: activeRecords.length, expiresAt };
+}
+
+function adminUsersFor(state: StoredState): AdminUsersResponse {
+  const users = state.users
+    .map((user) => {
+      const links = state.links[user.id] ?? [];
+      const widgets = state.widgets[user.id] ?? [];
+      const providers = Object.keys(user.oauthProviders ?? {});
+      const verified = isEmailVerified(user);
+
+      return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: state.profiles[user.id]?.displayName ?? user.username,
+        createdAt: user.createdAt ?? null,
+        emailVerifiedAt: user.emailVerifiedAt ?? null,
+        isEmailVerified: verified,
+        isAdmin: isAdminUser(user),
+        authProviders: providers.length > 0 ? providers : ["password"],
+        linksCount: links.length,
+        visibleLinksCount: links.filter((link) => link.visible).length,
+        widgetsCount: widgets.length,
+        visibleWidgetsCount: widgets.filter((widget) => widget.visible).length,
+        totalClicks: clickCountForUser(state, user.id),
+        pendingVerification: verified ? null : pendingVerificationForUser(state, user.id),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+
+  return {
+    summary: {
+      totalUsers: users.length,
+      verifiedUsers: users.filter((user) => user.isEmailVerified).length,
+      unverifiedUsers: users.filter((user) => !user.isEmailVerified).length,
+      adminUsers: users.filter((user) => user.isAdmin).length,
+      oauthUsers: users.filter((user) => user.authProviders.some((provider) => provider !== "password")).length,
+      totalLinks: users.reduce((sum, user) => sum + user.linksCount, 0),
+      totalClicks: users.reduce((sum, user) => sum + user.totalClicks, 0),
+    },
+    users,
+  };
 }
 
 function assertUrl(value: string, field = "URL", protocols = ["http:", "https:", "mailto:", "tel:", "sgnl:", "threema:", "potato:", "viber:", "luffa:"]) {
@@ -339,7 +447,7 @@ export async function register(input: { email: string; password: string; usernam
   if (state.users.some((u) => u.email === email)) throw new Error("Email is already registered.");
   if (state.users.some((u) => u.username === username)) throw new Error("Username is already taken.");
 
-  const user: StoredUser = { id: id("user"), email, username, password: input.password };
+  const user: StoredUser = { id: id("user"), email, username, password: input.password, createdAt: new Date().toISOString() };
   state.users.push(user);
   user.emailVerifiedAt = null;
   state.profiles[user.id] = { ...clone(defaultProfile), displayName: username, username, initials: initialsFromUsername(username) };
@@ -388,7 +496,7 @@ export async function socialLogin(provider: "google") {
   let user = state.users.find((u) => u.email === email);
 
   if (!user) {
-    user = { id: id("user"), email, username: `${provider}_creator`, password: id("oauth"), emailVerifiedAt: new Date().toISOString() };
+    user = { id: id("user"), email, username: `${provider}_creator`, password: id("oauth"), emailVerifiedAt: new Date().toISOString(), createdAt: new Date().toISOString(), oauthProviders: { [provider]: "local" } };
     state.users.push(user);
     state.profiles[user.id] = { ...clone(defaultProfile), username: user.username };
     state.links[user.id] = clone(defaultLinks);
@@ -481,6 +589,17 @@ export async function getPublicProfile(username: string) {
   const user = state.users.find((u) => u.username === username.toLowerCase());
   if (!user) throw new Error("Profile not found.");
   return delay(publicSnapshotForUser(state, user));
+}
+
+export async function getAdminUsers(): Promise<AdminUsersResponse> {
+  if (hasApiBackend()) {
+    return apiRequest<AdminUsersResponse>("/admin/users");
+  }
+
+  const state = readState();
+  const user = requireCurrentUser(state);
+  if (!isAdminUser(user)) throw new Error("Admin access is required.");
+  return delay(adminUsersFor(state));
 }
 
 export async function updateProfile(updates: Partial<UserProfile>) {

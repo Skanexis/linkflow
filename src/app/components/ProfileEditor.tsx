@@ -21,6 +21,8 @@ const BIO_TEMPLATES = [
   "Artist / creator | Commissions open | Latest work below",
 ];
 
+const PUBLIC_BASE_URL = String(import.meta.env.VITE_PUBLIC_APP_URL ?? "https://flowlinks.org").replace(/\/+$/, "");
+
 interface ProfileEditorProps {
   profile: UserProfile;
   theme: ProfileTheme;
@@ -124,7 +126,7 @@ export function ProfileEditor({ profile, theme, onUpdate, onUpdateTheme }: Profi
             </div>
             {profile.username && (
               <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", marginTop: "6px" }}>
-                linkflow.io/{profile.username}
+                {PUBLIC_BASE_URL.replace(/^https?:\/\//, "")}/{profile.username}
               </p>
             )}
           </div>
