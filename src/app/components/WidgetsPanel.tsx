@@ -226,6 +226,10 @@ function WidgetConfigForm({
                     song: preset?.song ?? widget.config.song,
                     artist: preset?.artist ?? widget.config.artist,
                     spotifyUrl: preset?.spotifyUrl ?? widget.config.spotifyUrl,
+                    color: preset?.color ?? widget.config.color,
+                    bpm: preset?.bpm ?? widget.config.bpm,
+                    bass: preset?.bass ?? widget.config.bass,
+                    lead: preset?.lead ?? widget.config.lead,
                   },
                 });
               }}
@@ -243,6 +247,7 @@ function WidgetConfigForm({
           {textField("Display title", "song", "Song title")}
           {textField("Display artist", "artist", "Artist name")}
           {textField("Spotify track / album / playlist URL", "spotifyUrl", "https://open.spotify.com/track/...")}
+          {textField("Rhythm BPM", "bpm", "120")}
         </>
       );
 

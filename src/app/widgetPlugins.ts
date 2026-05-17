@@ -31,6 +31,10 @@ export const WIDGET_PLUGINS: WidgetPlugin[] = [
       song: "Blinding Lights",
       artist: "The Weeknd",
       spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b",
+      color: "#1DB954",
+      bpm: 171,
+      bass: 82,
+      lead: 246,
     },
   },
   {

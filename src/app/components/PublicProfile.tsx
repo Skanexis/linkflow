@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -112,11 +112,18 @@ function getMusicTrack(config: Record<string, any>) {
   const preset = MUSIC_TRACK_PRESETS.find((track) => track.id === config.trackId);
   if (preset) return preset;
   if (!config.spotifyUrl) return MUSIC_TRACK_PRESETS[0];
+  const bpm = Number(config.bpm);
+  const bass = Number(config.bass);
+  const lead = Number(config.lead);
   return {
     ...MUSIC_TRACK_PRESETS[0],
     song: config.song ?? MUSIC_TRACK_PRESETS[0].song,
     artist: config.artist ?? MUSIC_TRACK_PRESETS[0].artist,
     spotifyUrl: config.spotifyUrl ?? MUSIC_TRACK_PRESETS[0].spotifyUrl,
+    color: config.color ?? MUSIC_TRACK_PRESETS[0].color,
+    bpm: Number.isFinite(bpm) && bpm > 40 ? bpm : MUSIC_TRACK_PRESETS[0].bpm,
+    bass: Number.isFinite(bass) && bass > 20 ? bass : MUSIC_TRACK_PRESETS[0].bass,
+    lead: Number.isFinite(lead) && lead > 20 ? lead : MUSIC_TRACK_PRESETS[0].lead,
   };
 }
 
@@ -234,6 +241,21 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
         maskImage: "radial-gradient(circle at 50% 8%, rgba(0,0,0,0.8), transparent 68%)",
       };
     }
+    if (pattern === "waves") {
+      return {
+        backgroundImage: `repeating-radial-gradient(ellipse at 50% 12%, ${theme.primaryColor}24 0 2px, transparent 2px 20px)`,
+        backgroundSize: isPreview ? "120px 76px" : "180px 120px",
+        backgroundPosition: "50% 0",
+        maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%)",
+      };
+    }
+    if (pattern === "equalizer") {
+      return {
+        backgroundImage: `linear-gradient(90deg, ${theme.primaryColor}22 0 10%, transparent 10% 18%, ${theme.textColor}12 18% 26%, transparent 26% 36%)`,
+        backgroundSize: isPreview ? "46px 100%" : "72px 100%",
+        maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65), transparent 78%)",
+      };
+    }
     return {
       backgroundImage: `linear-gradient(${theme.primaryColor}14 1px, transparent 1px), linear-gradient(90deg, ${theme.primaryColor}10 1px, transparent 1px)`,
       backgroundSize: isPreview ? "28px 28px" : "42px 42px",
@@ -280,6 +302,18 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
   });
 
   const getWidgetCardStyle = (widget: WidgetItem): React.CSSProperties => {
+    if (widget.type === "music") {
+      return {
+        padding: 0,
+        borderRadius: isPreview ? "12px" : "16px",
+        position: "relative",
+        overflow: "hidden",
+        background: "transparent",
+        border: "none",
+        boxShadow: "none",
+      };
+    }
+
     const accentMap: Record<string, string> = {
       music: "#1DB954",
       countdown: "#f59e0b",
@@ -420,14 +454,23 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
     bio: isPreview ? "11px" : "14px",
   };
 
-  // Check if there's a visible music widget for background animation
-  const hasMusicWidget = visibleWidgets.some((w) => w.type === "music");
+  const activeMusicWidget = visibleWidgets.find((w) => w.type === "music");
+  const activeMusicTrack = activeMusicWidget ? getMusicTrack(activeMusicWidget.config) : null;
+  const beatDuration = activeMusicTrack ? 60 / activeMusicTrack.bpm : 1.4;
+  const shellStyle = {
+    ...getShellStyle(),
+    "--music-beat-duration": `${beatDuration}s`,
+    "--music-bar-duration": `${beatDuration * 4}s`,
+    "--music-accent": activeMusicTrack?.color ?? theme.primaryColor,
+  } as React.CSSProperties;
+  const hasMusicWidget = Boolean(activeMusicWidget);
 
   return (
     <div
       className={`profile-app-shell relative ${hasMusicWidget ? "music-playing" : ""}`}
       data-preview={isPreview ? "true" : "false"}
-      style={getShellStyle()}
+      data-animation-pack={theme.animationPack ?? "smooth"}
+      style={shellStyle}
     >
       {/* Animated bg extra glow for 'animated' type */}
       {theme.backgroundType === "animated" && (
@@ -437,9 +480,19 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
             style={{
               inset: 0,
               background: `linear-gradient(130deg, ${theme.primaryColor}24, transparent 38%), linear-gradient(230deg, ${theme.textColor}10, transparent 42%)`,
-              animation: "pulse 3s ease-in-out infinite",
+              animation: "themePulse var(--music-bar-duration, 3s) ease-in-out infinite",
             }}
           />
+        </div>
+      )}
+      {hasMusicWidget && theme.animationPack !== "minimal" && (
+        <div className="music-reactive-field absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="music-reactive-wave absolute" style={{ background: `radial-gradient(circle, ${activeMusicTrack?.color ?? theme.primaryColor}3a, transparent 62%)` }} />
+          <div className="music-reactive-bars absolute inset-x-0 bottom-0 flex items-end justify-center gap-1.5">
+            {Array.from({ length: 18 }).map((_, index) => (
+              <span key={index} style={{ animationDelay: `${index * 0.045}s` }} />
+            ))}
+          </div>
         </div>
       )}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -608,16 +661,18 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
                 className="profile-widget-card w-full"
                 style={getWidgetCardStyle(widget)}
               >
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    top: 0,
-                    left: "12%",
-                    right: "12%",
-                    height: "1px",
-                    background: `linear-gradient(90deg, transparent, ${theme.textColor}70, transparent)`,
-                  }}
-                />
+                {widget.type !== "music" && (
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: 0,
+                      left: "12%",
+                      right: "12%",
+                      height: "1px",
+                      background: `linear-gradient(90deg, transparent, ${theme.textColor}70, transparent)`,
+                    }}
+                  />
+                )}
                 <WidgetRenderer widget={widget} textColor={theme.textColor} isPreview={isPreview} onWidgetChange={replaceWidget} />
               </motion.div>
             ))}
@@ -651,96 +706,17 @@ function WidgetRenderer({
   const titleSize = isPreview ? "12px" : "15px";
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(widget.config.trackId ?? null);
-  const [levels, setLevels] = useState([22, 38, 54, 44, 70, 48, 34, 62, 40, 26]);
   const [expandedVideo, setExpandedVideo] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [chatText, setChatText] = useState("");
   const [sentChat, setSentChat] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const audioRef = useRef<{
-    context: AudioContext;
-    analyser: AnalyserNode;
-    gain: GainNode;
-    timers: number[];
-    frame: number;
-  } | null>(null);
-
-  const stopMusic = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.timers.forEach((timer) => window.clearTimeout(timer));
-    window.cancelAnimationFrame(audio.frame);
-    audio.gain.gain.setTargetAtTime(0, audio.context.currentTime, 0.04);
-    window.setTimeout(() => {
-      void audio.context.close();
-    }, 180);
-    audioRef.current = null;
-    setIsMusicPlaying(false);
-  };
-
-  useEffect(() => stopMusic, []);
 
   useEffect(() => {
     if (widget.type !== "countdown") return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [widget.type]);
-
-  const playMusic = async (trackId?: string) => {
-    stopMusic();
-    const track = MUSIC_TRACK_PRESETS.find((item) => item.id === trackId) ?? getMusicTrack(widget.config);
-    const AudioContextCtor = window.AudioContext ?? (window as any).webkitAudioContext;
-    if (!AudioContextCtor) return;
-
-    const context = new AudioContextCtor() as AudioContext;
-    const analyser = context.createAnalyser();
-    const gain = context.createGain();
-    analyser.fftSize = 64;
-    gain.gain.value = 0.12;
-    analyser.connect(gain);
-    gain.connect(context.destination);
-
-    const beatMs = 60000 / track.bpm;
-    const timers: number[] = [];
-    const scheduleNote = (delay: number, frequency: number, duration: number, volume: number, type: OscillatorType) => {
-      const timer = window.setTimeout(() => {
-        const oscillator = context.createOscillator();
-        const noteGain = context.createGain();
-        oscillator.type = type;
-        oscillator.frequency.setValueAtTime(frequency, context.currentTime);
-        noteGain.gain.setValueAtTime(volume, context.currentTime);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
-        oscillator.connect(noteGain);
-        noteGain.connect(analyser);
-        oscillator.start();
-        oscillator.stop(context.currentTime + duration);
-      }, delay);
-      timers.push(timer);
-    };
-
-    for (let bar = 0; bar < 16; bar += 1) {
-      const offset = bar * beatMs;
-      scheduleNote(offset, track.bass, 0.18, 0.85, "sine");
-      scheduleNote(offset + beatMs * 0.5, track.lead, 0.08, 0.24, "triangle");
-      scheduleNote(offset + beatMs * 1.0, track.bass * 1.5, 0.12, 0.38, "square");
-      scheduleNote(offset + beatMs * 1.5, track.lead * 1.25, 0.07, 0.2, "triangle");
-    }
-
-    const data = new Uint8Array(analyser.frequencyBinCount);
-    const tick = () => {
-      analyser.getByteFrequencyData(data);
-      setLevels(Array.from({ length: 10 }, (_, index) => 18 + Math.min(72, data[index + 2] / 2.6)));
-      audioRef.current!.frame = window.requestAnimationFrame(tick);
-    };
-
-    audioRef.current = { context, analyser, gain, timers, frame: window.requestAnimationFrame(tick) };
-    setSelectedTrackId(track.id);
-    setIsMusicPlaying(true);
-    timers.push(window.setTimeout(stopMusic, beatMs * 16 + 500));
-    await context.resume();
-  };
 
   const handleVote = async (optionIndex: number) => {
     if (isPreview) {
@@ -771,47 +747,18 @@ function WidgetRenderer({
 
   switch (widget.type) {
     case "music": {
-      const track = MUSIC_TRACK_PRESETS.find((item) => item.id === selectedTrackId) ?? getMusicTrack(widget.config);
+      const track = getMusicTrack(widget.config);
       const spotifyUrl = widget.config.spotifyUrl ?? track.spotifyUrl;
       const embedUrl = spotifyEmbedUrl(spotifyUrl);
       
       return (
         <div className="w-full">
-          {/* Header with track info */}
-          <div className="mb-4 flex items-center gap-3">
-            <div
-              className="rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-              style={{
-                width: isPreview ? "40px" : "56px",
-                height: isPreview ? "40px" : "56px",
-                background: `linear-gradient(135deg, #1DB954 0%, #1ed760 100%)`,
-                boxShadow: "0 8px 24px rgba(29, 185, 84, 0.25)",
-              }}
-            >
-              <Music size={isPreview ? 18 : 28} style={{ color: "#ffffff" }} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor, marginBottom: "4px" }}>
-                {widget.config.song ?? track.song}
-              </p>
-              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}70` }}>
-                {widget.config.artist ?? track.artist}
-              </p>
-              <p style={{ fontSize: "11px", color: `${textColor}50`, marginTop: "3px" }}>
-                {track.bpm} BPM
-              </p>
-            </div>
-          </div>
-
-          {/* Spotify embed player */}
           {embedUrl && (
             <div 
-              className="w-full overflow-hidden rounded-2xl transition-all hover:shadow-lg"
+              className="w-full overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, rgba(29, 185, 84, 0.1) 0%, rgba(30, 215, 96, 0.05) 100%)",
-                border: "1px solid rgba(29, 185, 84, 0.25)",
-                height: isPreview ? "100px" : "156px",
-                boxShadow: "0 12px 32px rgba(29, 185, 84, 0.15)",
+                borderRadius: isPreview ? "12px" : "16px",
+                height: isPreview ? "80px" : "152px",
               }}
             >
               <iframe
@@ -821,7 +768,7 @@ function WidgetRenderer({
                 height="100%"
                 style={{
                   border: "none",
-                  borderRadius: "16px",
+                  borderRadius: isPreview ? "12px" : "16px",
                   display: "block",
                 }}
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -829,25 +776,6 @@ function WidgetRenderer({
               />
             </div>
           )}
-
-          {/* Spotify link button */}
-          <a
-            href={spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-4 rounded-full px-4 py-2 transition-all hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, #1DB954 0%, #1ed760 100%)",
-              color: "#ffffff",
-              fontSize: "13px",
-              fontWeight: 700,
-              textDecoration: "none",
-              boxShadow: "0 6px 16px rgba(29, 185, 84, 0.3)",
-            }}
-          >
-            <Headphones size={14} />
-            Listen on Spotify
-          </a>
         </div>
       );
     }

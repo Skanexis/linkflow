@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  X,
 } from "lucide-react";
 import type { UserProfile, LinkItem, ProfileTheme, WidgetItem } from "../App";
 import { ProfileEditor } from "./ProfileEditor";
@@ -61,6 +62,13 @@ const DASH_THEME = {
   coral: "#f87171",
 };
 
+function getViewportSize() {
+  return {
+    width: Math.round(window.visualViewport?.width ?? window.innerWidth),
+    height: Math.round(window.visualViewport?.height ?? window.innerHeight),
+  };
+}
+
 export function Dashboard({
   profile,
   links,
@@ -79,24 +87,35 @@ export function Dashboard({
   onLogout,
 }: DashboardProps) {
   const [section, setSection] = useState<Section>("links");
-  const [showPreview, setShowPreview] = useState(true);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [showPreview, setShowPreview] = useState(() => window.innerWidth >= 820);
+  const [viewport, setViewport] = useState(getViewportSize);
 
   useEffect(() => {
-    const handleResize = () => setViewportWidth(window.innerWidth);
+    const handleResize = () => setViewport(getViewportSize());
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   const currentSection = NAV_ITEMS.find((n) => n.id === section)!;
-  const isTablet = viewportWidth < 1180;
-  const isMobile = viewportWidth < 820;
+  const isTablet = viewport.width < 1180;
+  const isMobile = viewport.width < 820;
   const sidebarWidth = isTablet ? 76 : 220;
-  const previewPanelWidth = isMobile ? "100%" : isTablet ? "260px" : "300px";
-  const availablePreviewWidth = isMobile ? Math.max(280, viewportWidth - 32) : isTablet ? 228 : 224;
-  const phoneFrameWidth = Math.min(isMobile ? 300 : availablePreviewWidth, isMobile ? viewportWidth - 44 : availablePreviewWidth);
-  const phoneScale = Math.max(0.52, Math.min(0.74, (phoneFrameWidth - 12) / 375));
-  const phoneFrameHeight = Math.min(isMobile ? 520 : 460, Math.round(814 * phoneScale) + 12);
+  const previewPanelWidth = isTablet ? "260px" : "300px";
+  const availablePreviewWidth = isMobile ? Math.max(280, viewport.width - 32) : isTablet ? 228 : 224;
+  const phoneFrameWidth = isMobile ? Math.min(360, Math.max(280, viewport.width - 32)) : availablePreviewWidth;
+  const mobileChromeHeight = 148;
+  const mobileAvailableHeight = Math.max(380, viewport.height - mobileChromeHeight);
+  const phoneScaleByWidth = (phoneFrameWidth - 12) / 375;
+  const phoneScaleByHeight = (mobileAvailableHeight - 12) / 814;
+  const phoneScale = isMobile
+    ? Math.max(0.42, Math.min(0.86, phoneScaleByWidth, phoneScaleByHeight))
+    : Math.max(0.52, Math.min(0.74, phoneScaleByWidth));
+  const phoneOuterWidth = Math.round(375 * phoneScale) + 12;
+  const phoneFrameHeight = isMobile ? Math.round(814 * phoneScale) + 12 : Math.min(460, Math.round(814 * phoneScale) + 12);
 
   return (
     <div
@@ -258,7 +277,7 @@ export function Dashboard({
       {/* Main editor area */}
       <div
         className="flex-1 overflow-hidden min-w-0"
-        style={{ display: "flex", flexDirection: isMobile ? "column" : "row", minHeight: 0 }}
+        style={{ display: "flex", flexDirection: "row", minHeight: 0 }}
       >
         <div className="flex-1 overflow-y-auto" style={{ minWidth: 0 }}>
           <div className="mx-auto" style={{ maxWidth: "720px", padding: isMobile ? "18px 14px 24px" : "24px" }}>
@@ -289,7 +308,7 @@ export function Dashboard({
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = DASH_THEME.muted)}
               >
                 {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPreview ? "Hide" : "Show"} preview
+                {showPreview ? (isMobile ? "Close" : "Hide") : "Show"} preview
               </button>
             </div>
 
@@ -326,42 +345,71 @@ export function Dashboard({
           <div
             className="flex-shrink-0 flex flex-col overflow-hidden"
             style={{
-              width: previewPanelWidth,
-              maxHeight: isMobile ? "58%" : "none",
-              background: "#0a0f0e",
+              position: isMobile ? "fixed" : "relative",
+              inset: isMobile ? 0 : undefined,
+              zIndex: isMobile ? 80 : undefined,
+              width: isMobile ? "100vw" : previewPanelWidth,
+              height: isMobile ? "100dvh" : "auto",
+              maxHeight: "none",
+              background: isMobile ? "rgba(7,7,15,0.98)" : "#0a0f0e",
               borderLeft: isMobile ? "none" : `1px solid ${DASH_THEME.border}`,
-              borderTop: isMobile ? `1px solid ${DASH_THEME.border}` : "none",
+              borderTop: "none",
+              backdropFilter: isMobile ? "blur(18px)" : undefined,
             }}
           >
             <div
               className="flex items-center justify-between px-4 py-3"
-              style={{ borderBottom: `1px solid ${DASH_THEME.border}` }}
+              style={{
+                borderBottom: `1px solid ${DASH_THEME.border}`,
+                paddingTop: isMobile ? "max(12px, env(safe-area-inset-top))" : undefined,
+              }}
             >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: DASH_THEME.soft,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Live Preview
-              </span>
-              <div className="flex gap-1.5">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,95,87,0.5)" }} />
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,189,46,0.5)" }} />
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(40,200,64,0.5)" }} />
+              <div>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: DASH_THEME.soft,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Live Preview
+                </span>
+                {isMobile && (
+                  <p style={{ color: DASH_THEME.muted, fontSize: "12px", marginTop: "2px" }}>
+                    @{profile.username}
+                  </p>
+                )}
               </div>
+              {isMobile ? (
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl transition-all"
+                  style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${DASH_THEME.border}`, color: DASH_THEME.text }}
+                  aria-label="Close live preview"
+                >
+                  <X size={18} />
+                </button>
+              ) : (
+                <div className="flex gap-1.5">
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,95,87,0.5)" }} />
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,189,46,0.5)" }} />
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(40,200,64,0.5)" }} />
+                </div>
+              )}
             </div>
 
             {/* Phone mockup */}
-            <div className="flex-1 overflow-hidden flex items-start justify-center" style={{ padding: isMobile ? "14px" : "20px 16px" }}>
-              <div className="relative flex-shrink-0" style={{ width: `${phoneFrameWidth}px` }}>
+            <div
+              className="flex-1 overflow-hidden flex items-center justify-center"
+              style={{ padding: isMobile ? "12px 16px" : "20px 16px" }}
+            >
+              <div className="relative flex-shrink-0" style={{ width: `${phoneOuterWidth}px` }}>
                 {/* Phone notch */}
                 <div
                   className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full z-20"
-                  style={{ width: `${Math.max(48, phoneFrameWidth * 0.27)}px`, height: "14px", background: "#0a0a16" }}
+                  style={{ width: `${Math.max(48, phoneOuterWidth * 0.27)}px`, height: "14px", background: "#0a0a16" }}
                 />
                 {/* Phone frame */}
                 <div
@@ -370,7 +418,7 @@ export function Dashboard({
                     border: "6px solid #1a1a2e",
                     boxShadow: "0 24px 60px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.05)",
                     height: `${phoneFrameHeight}px`,
-                    width: `${phoneFrameWidth}px`,
+                    width: `${phoneOuterWidth}px`,
                     position: "relative",
                   }}
                 >
@@ -401,7 +449,10 @@ export function Dashboard({
             </div>
 
             {/* View full link */}
-            <div className="px-4 pb-4">
+            <div
+              className="px-4 pb-4"
+              style={{ paddingBottom: isMobile ? "max(16px, env(safe-area-inset-bottom))" : undefined }}
+            >
               <button
                 onClick={onViewProfile}
                 className="w-full py-2.5 rounded-xl text-center transition-all"

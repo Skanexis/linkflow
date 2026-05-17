@@ -49,12 +49,12 @@ export interface ProfileTheme {
   primaryColor: string;
   textColor: string;
   backgroundImage?: string;
-  backgroundPattern?: 'none' | 'grid' | 'dots' | 'stars' | 'rays';
+  backgroundPattern?: 'none' | 'grid' | 'dots' | 'stars' | 'rays' | 'waves' | 'equalizer';
   backgroundOverlay?: number;
   profileStyle?: 'halo' | 'editorial' | 'terminal' | 'poster';
   widgetStyle?: 'glass' | 'solid' | 'outline' | 'neon';
   contentWidth?: 'compact' | 'comfortable' | 'wide';
-  animationPack?: 'smooth' | 'pop' | 'cinematic' | 'neon' | 'minimal';
+  animationPack?: 'smooth' | 'pop' | 'cinematic' | 'neon' | 'minimal' | 'beat' | 'waveform' | 'club';
   iconStyle?: 'brand' | 'mono' | 'duotone' | 'boxed';
 }
 
@@ -90,10 +90,12 @@ const defaultTheme: ProfileTheme = {
   profileStyle: 'halo',
   widgetStyle: 'glass',
   contentWidth: 'comfortable',
+  animationPack: 'smooth',
+  iconStyle: 'brand',
 };
 
 const defaultWidgets: WidgetItem[] = [
-  { id: 'w1', type: 'music', title: 'Now Playing', visible: true, config: { trackId: 'blinding-lights', song: 'Blinding Lights', artist: 'The Weeknd', spotifyUrl: 'https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b' } },
+  { id: 'w1', type: 'music', title: 'Now Playing', visible: true, config: { trackId: 'blinding-lights', song: 'Blinding Lights', artist: 'The Weeknd', spotifyUrl: 'https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b', color: '#1DB954', bpm: 171, bass: 82, lead: 246 } },
   { id: 'w2', type: 'countdown', title: 'Launch Countdown', visible: false, config: { targetDate: '2026-12-31', label: 'New Year 2027' } },
   { id: 'w3', type: 'product', title: 'Product Card', visible: true, config: { name: 'Digital Starter Kit', price: '$29', description: 'Templates, assets, and resources in one bundle.', buttonLabel: 'View product', url: 'https://example.com/product' } },
   { id: 'w4', type: 'map', title: 'Map Location', visible: false, config: { place: 'Studio HQ', address: '123 Creator Ave, Los Angeles', url: 'https://maps.google.com' } },

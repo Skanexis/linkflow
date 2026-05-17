@@ -82,7 +82,7 @@ const defaultTheme = {
 };
 
 const defaultWidgets = [
-  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "blinding-lights", song: "Blinding Lights", artist: "The Weeknd", spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b" } },
+  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "blinding-lights", song: "Blinding Lights", artist: "The Weeknd", spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b", color: "#1DB954", bpm: 171, bass: 82, lead: 246 } },
   { id: "w2", type: "countdown", title: "Launch Countdown", visible: false, config: { targetDate: "2026-12-31", label: "New Year 2027" } },
   { id: "w3", type: "product", title: "Product Card", visible: true, config: { name: "Digital Starter Kit", price: "$29", description: "Templates, assets, and resources in one bundle.", buttonLabel: "View product", url: "https://example.com/product" } },
   { id: "w4", type: "map", title: "Map Location", visible: false, config: { place: "Studio HQ", address: "123 Creator Ave, Los Angeles", url: "https://maps.google.com" } },
@@ -144,12 +144,12 @@ const themeSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   backgroundImage: z.string().max(900000).optional().or(z.literal("")),
-  backgroundPattern: z.enum(["none", "grid", "dots", "stars", "rays"]).optional(),
+  backgroundPattern: z.enum(["none", "grid", "dots", "stars", "rays", "waves", "equalizer"]).optional(),
   backgroundOverlay: z.number().min(0).max(90).optional(),
   profileStyle: z.enum(["halo", "editorial", "terminal", "poster"]).optional(),
   widgetStyle: z.enum(["glass", "solid", "outline", "neon"]).optional(),
   contentWidth: z.enum(["compact", "comfortable", "wide"]).optional(),
-  animationPack: z.enum(["smooth", "pop", "cinematic", "neon", "minimal"]).optional(),
+  animationPack: z.enum(["smooth", "pop", "cinematic", "neon", "minimal", "beat", "waveform", "club"]).optional(),
   iconStyle: z.enum(["brand", "mono", "duotone", "boxed"]).optional(),
 });
 

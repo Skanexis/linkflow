@@ -17,6 +17,18 @@ body {
   }
 }
 
+@keyframes themePulse {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(0.98) rotate(0deg);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04) rotate(1deg);
+  }
+}
+
 @keyframes musicRhythm {
   0% {
     opacity: 1;
@@ -42,19 +54,131 @@ body {
 
 @keyframes musicPulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.2);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--track-accent, #1db954) 26%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 20px rgba(29, 185, 84, 0);
+    box-shadow: 0 0 0 20px color-mix(in srgb, var(--track-accent, #1db954) 0%, transparent);
+  }
+}
+
+@keyframes musicCardBeat {
+  0%, 100% {
+    transform: translateZ(0) scale(1);
+  }
+
+  18% {
+    transform: translateZ(0) scale(1.012);
+  }
+
+  44% {
+    transform: translateZ(0) scale(0.997);
+  }
+}
+
+@keyframes musicWaveDrift {
+  0%, 100% {
+    opacity: 0.22;
+    transform: translate(-50%, -35%) scale(0.82);
+  }
+
+  50% {
+    opacity: 0.48;
+    transform: translate(-50%, -35%) scale(1.18);
+  }
+}
+
+@keyframes musicBars {
+  0%, 100% {
+    height: 12%;
+    opacity: 0.16;
+  }
+
+  35% {
+    height: 82%;
+    opacity: 0.42;
+  }
+
+  64% {
+    height: 34%;
+    opacity: 0.24;
+  }
+}
+
+@keyframes musicEqualizerBar {
+  0%, 100% {
+    transform: scaleY(0.62);
+    opacity: 0.62;
+  }
+
+  45% {
+    transform: scaleY(1.08);
+    opacity: 1;
   }
 }
 
 .music-playing {
-  animation: musicRhythm 1.4s ease-in-out infinite;
+  animation: musicRhythm var(--music-bar-duration, 1.4s) ease-in-out infinite;
+}
+
+.profile-app-shell[data-animation-pack="beat"].music-playing,
+.profile-app-shell[data-animation-pack="club"].music-playing {
+  animation-duration: var(--music-beat-duration, 0.7s);
+}
+
+.profile-app-shell[data-animation-pack="minimal"].music-playing {
+  animation: none;
 }
 
 .music-widget-pulse {
-  animation: musicPulse 2s ease-out infinite;
+  animation: musicPulse var(--track-beat, 1s) ease-out infinite;
+}
+
+.music-reactive-field {
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+
+.music-reactive-wave {
+  left: 50%;
+  top: 30%;
+  width: min(120vw, 720px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  animation: musicWaveDrift var(--music-bar-duration, 3s) ease-in-out infinite;
+}
+
+.music-reactive-bars {
+  height: 24%;
+  padding: 0 max(14px, env(safe-area-inset-left)) 0 max(14px, env(safe-area-inset-right));
+  opacity: 0.7;
+}
+
+.music-reactive-bars span {
+  width: min(4.5vw, 18px);
+  max-width: 18px;
+  min-height: 10%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(to top, transparent, var(--music-accent, #1db954));
+  animation: musicBars var(--music-beat-duration, 0.7s) ease-in-out infinite;
+}
+
+.profile-app-shell[data-animation-pack="waveform"] .music-reactive-bars span {
+  animation-duration: var(--music-bar-duration, 3s);
+}
+
+.profile-app-shell[data-animation-pack="club"] .music-reactive-bars span {
+  opacity: 0.95;
+  filter: saturate(1.25);
+}
+
+.music-eq-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 999px;
+  transform-origin: bottom;
+  background: linear-gradient(to top, color-mix(in srgb, var(--track-accent, #1db954) 60%, transparent), var(--track-accent, #1db954));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--track-accent, #1db954) 30%, transparent);
+  animation: musicEqualizerBar var(--track-beat, 1s) ease-in-out infinite;
 }
 
 @keyframes profileOrbit {
@@ -105,6 +229,55 @@ body {
 .profile-app-shell img,
 .profile-app-shell video {
   max-width: 100%;
+}
+
+.overlay-slider {
+  height: 28px;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  outline: none;
+}
+
+.overlay-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.overlay-slider::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  appearance: none;
+  border: 3px solid #f8fafc;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  box-shadow: 0 8px 22px rgba(168, 85, 247, 0.36), 0 0 0 5px rgba(168, 85, 247, 0.14);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.overlay-slider:hover::-webkit-slider-thumb,
+.overlay-slider:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.08);
+  box-shadow: 0 10px 26px rgba(236, 72, 153, 0.36), 0 0 0 7px rgba(168, 85, 247, 0.18);
+}
+
+.overlay-slider::-moz-range-track {
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.overlay-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f8fafc;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  box-shadow: 0 8px 22px rgba(168, 85, 247, 0.36), 0 0 0 5px rgba(168, 85, 247, 0.14);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
 .profile-widget-card {
@@ -209,5 +382,16 @@ body {
   .profile-app-shell[data-preview="false"] button,
   .profile-app-shell[data-preview="false"] a {
     max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-playing,
+  .music-widget-pulse,
+  .music-reactive-wave,
+  .music-reactive-bars span,
+  .music-eq-bar,
+  .profile-widget-card {
+    animation: none !important;
   }
 }
