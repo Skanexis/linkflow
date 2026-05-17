@@ -42,8 +42,8 @@ export interface ProfileTheme {
   backgroundType: 'solid' | 'gradient' | 'animated' | 'image';
   bgColor1: string;
   bgColor2: string;
-  buttonStyle: 'rounded' | 'pill' | 'glass' | '3d';
-  hoverEffect: 'glow' | 'bounce' | 'expand' | 'none';
+  buttonStyle: 'rounded' | 'pill' | 'glass' | '3d' | 'neon' | 'soft' | 'brutal' | 'underline';
+  hoverEffect: 'glow' | 'bounce' | 'expand' | 'none' | 'tilt' | 'slide';
   layoutMode: 'vertical' | 'grid';
   fontFamily: string;
   primaryColor: string;
@@ -54,6 +54,8 @@ export interface ProfileTheme {
   profileStyle?: 'halo' | 'editorial' | 'terminal' | 'poster';
   widgetStyle?: 'glass' | 'solid' | 'outline' | 'neon';
   contentWidth?: 'compact' | 'comfortable' | 'wide';
+  animationPack?: 'smooth' | 'pop' | 'cinematic' | 'neon' | 'minimal';
+  iconStyle?: 'brand' | 'mono' | 'duotone' | 'boxed';
 }
 
 const defaultProfile: UserProfile = {
@@ -88,10 +90,12 @@ const defaultTheme: ProfileTheme = {
   profileStyle: 'halo',
   widgetStyle: 'glass',
   contentWidth: 'comfortable',
+  animationPack: 'smooth',
+  iconStyle: 'brand',
 };
 
 const defaultWidgets: WidgetItem[] = [
-  { id: 'w1', type: 'music', title: 'Now Playing', visible: true, config: { trackId: 'neon', song: 'Neon Pulse', artist: 'LinkFlow Studio' } },
+  { id: 'w1', type: 'music', title: 'Now Playing', visible: true, config: { trackId: 'blinding-lights', song: 'Blinding Lights', artist: 'The Weeknd', spotifyUrl: 'https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b' } },
   { id: 'w2', type: 'countdown', title: 'Launch Countdown', visible: false, config: { targetDate: '2026-12-31', label: 'New Year 2027' } },
   { id: 'w3', type: 'product', title: 'Product Card', visible: true, config: { name: 'Digital Starter Kit', price: '$29', description: 'Templates, assets, and resources in one bundle.', buttonLabel: 'View product', url: 'https://example.com/product' } },
   { id: 'w4', type: 'map', title: 'Map Location', visible: false, config: { place: 'Studio HQ', address: '123 Creator Ave, Los Angeles', url: 'https://maps.google.com' } },
@@ -115,6 +119,8 @@ export default function App() {
   const [widgets, setWidgets] = useState<WidgetItem[]>(defaultWidgets);
   const [publicProfile, setPublicProfile] = useState<backend.PublicProfileSnapshot | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [appError, setAppError] = useState<string | null>(null);
 
   const applySnapshot = useCallback((snapshot: backend.AppSnapshot) => {
@@ -125,6 +131,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const localEmailToken = params.get("email_verify_token");
+    const emailVerified = params.get("email_verified");
+
+    if (localEmailToken) {
+      backend.verifyEmail(localEmailToken).then((verified) => {
+        window.history.replaceState(null, "", window.location.pathname);
+        setAuthMode("login");
+        setAuthNotice(verified ? "Email confirmed. You can sign in now." : "Verification link is invalid or expired.");
+        setView("auth");
+      });
+      return;
+    }
+
+    if (emailVerified) {
+      window.history.replaceState(null, "", window.location.pathname);
+      setAuthMode("login");
+      setAuthNotice(emailVerified === "1" ? "Email confirmed. You can sign in now." : "Verification link is invalid or expired.");
+      setView("auth");
+      return;
+    }
+
     const username = window.location.pathname.split("/").filter(Boolean)[0];
     const reserved = new Set(["api", "assets", "dashboard", "auth"]);
     if (username && !reserved.has(username)) {
@@ -150,10 +178,19 @@ export default function App() {
     async (input: { mode: "login" | "register"; email: string; password: string; username?: string }) => {
       try {
         setAuthError(null);
-        const snapshot =
-          input.mode === "register"
-            ? await backend.register({ email: input.email, password: input.password, username: input.username ?? "" })
-            : await backend.login({ email: input.email, password: input.password });
+        setAuthNotice(null);
+        if (input.mode === "register") {
+          const result = await backend.register({ email: input.email, password: input.password, username: input.username ?? "" });
+          setPendingVerificationEmail(result.email);
+          setAuthMode("login");
+          setAuthNotice(
+            result.devVerificationUrl
+              ? `Account created. Dev verification link: ${result.devVerificationUrl}`
+              : "Account created. Check your email and confirm it before signing in."
+          );
+          return;
+        }
+        const snapshot = await backend.login({ email: input.email, password: input.password });
         applySnapshot(snapshot);
         setView("dashboard");
       } catch (error) {
@@ -162,6 +199,17 @@ export default function App() {
     },
     [applySnapshot]
   );
+
+  const handleResendVerification = useCallback(async (email: string) => {
+    try {
+      setAuthError(null);
+      await backend.resendVerificationEmail(email);
+      setPendingVerificationEmail(email);
+      setAuthNotice("Verification email sent. Check your inbox and spam folder.");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Verification email could not be sent.");
+    }
+  }, []);
 
   const handleSocialAuth = useCallback(
     async (provider: "google" | "apple") => {
@@ -256,7 +304,10 @@ export default function App() {
             mode={authMode}
             onModeChange={setAuthMode}
             error={authError}
+            notice={authNotice}
+            pendingVerificationEmail={pendingVerificationEmail}
             onAuth={handleAuth}
+            onResendVerification={handleResendVerification}
             onSocialAuth={handleSocialAuth}
             onBack={() => setView('landing')}
           />

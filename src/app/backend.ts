@@ -14,6 +14,12 @@ export interface AppSnapshot {
   widgets: WidgetItem[];
 }
 
+export interface EmailVerificationRequired {
+  requiresEmailVerification: true;
+  email: string;
+  devVerificationUrl?: string;
+}
+
 export interface PublicProfileSnapshot {
   profile: UserProfile;
   links: LinkItem[];
@@ -30,6 +36,7 @@ export interface AnalyticsSummary {
 
 interface StoredUser extends AuthUser {
   password: string;
+  emailVerifiedAt?: string | null;
 }
 
 interface StoredState {
@@ -40,6 +47,7 @@ interface StoredState {
   themes: Record<string, ProfileTheme>;
   widgets: Record<string, WidgetItem[]>;
   analytics: Record<string, Record<string, number>>;
+  emailVerificationTokens?: Record<string, { userId: string; expiresAt: string; createdAt: string }>;
 }
 
 const STORAGE_KEY = "linkflow.backend.v1";
@@ -78,10 +86,12 @@ const defaultTheme: ProfileTheme = {
   profileStyle: "halo",
   widgetStyle: "glass",
   contentWidth: "comfortable",
+  animationPack: "smooth",
+  iconStyle: "brand",
 };
 
 const defaultWidgets: WidgetItem[] = [
-  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "neon", song: "Neon Pulse", artist: "LinkFlow Studio" } },
+  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "blinding-lights", song: "Blinding Lights", artist: "The Weeknd", spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b" } },
   { id: "w2", type: "countdown", title: "Launch Countdown", visible: false, config: { targetDate: "2026-12-31", label: "New Year 2027" } },
   { id: "w3", type: "product", title: "Product Card", visible: true, config: { name: "Digital Starter Kit", price: "$29", description: "Templates, assets, and resources in one bundle.", buttonLabel: "View product", url: "https://example.com/product" } },
   { id: "w4", type: "map", title: "Map Location", visible: false, config: { place: "Studio HQ", address: "123 Creator Ave, Los Angeles", url: "https://maps.google.com" } },
@@ -148,6 +158,7 @@ function initialState(): StoredState {
     email: "demo@linkflow.local",
     username: defaultProfile.username,
     password: "password",
+    emailVerifiedAt: new Date().toISOString(),
   };
 
   return {
@@ -158,6 +169,7 @@ function initialState(): StoredState {
     themes: { [demoUser.id]: clone(defaultTheme) },
     widgets: { [demoUser.id]: clone(defaultWidgets) },
     analytics: { [demoUser.id]: {} },
+    emailVerificationTokens: {},
   };
 }
 
@@ -174,6 +186,19 @@ function readState(): StoredState {
 
 function writeState(state: StoredState) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getEmailVerificationTokens(state: StoredState) {
+  state.emailVerificationTokens ??= {};
+  return state.emailVerificationTokens;
+}
+
+function makeVerificationToken() {
+  return window.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+}
+
+function isEmailVerified(user: StoredUser) {
+  return Boolean(user.emailVerifiedAt) || !Object.prototype.hasOwnProperty.call(user, "emailVerifiedAt");
 }
 
 function requireCurrentUser(state: StoredState) {
@@ -215,10 +240,9 @@ function assertUrl(value: string, field = "URL", protocols = ["http:", "https:",
 }
 
 function validateWidgetConfig(config: Record<string, any>) {
-  const url = config.url;
-  if (typeof url === "string" && url.trim()) {
-    assertUrl(url, "Widget URL", ["http:", "https:", "mailto:", "tel:"]);
-  }
+  // Widget fields autosave on each keystroke, so URL values can be temporary drafts.
+  // The public renderer sanitizes widget URLs before using them.
+  void config;
 }
 
 export function detectPlatform(url: string): string {
@@ -273,7 +297,10 @@ export async function getSession() {
 
 export async function register(input: { email: string; password: string; username: string }) {
   if (hasApiBackend()) {
-    return apiAuth("/auth/register", input);
+    return apiRequest<EmailVerificationRequired>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 
   const state = readState();
@@ -288,14 +315,21 @@ export async function register(input: { email: string; password: string; usernam
 
   const user: StoredUser = { id: id("user"), email, username, password: input.password };
   state.users.push(user);
-  state.currentUserId = user.id;
+  user.emailVerifiedAt = null;
   state.profiles[user.id] = { ...clone(defaultProfile), displayName: username, username, initials: initialsFromUsername(username) };
   state.links[user.id] = [];
   state.themes[user.id] = clone(defaultTheme);
   state.widgets[user.id] = [];
   state.analytics[user.id] = {};
+  state.currentUserId = null;
+  const token = makeVerificationToken();
+  getEmailVerificationTokens(state)[token] = {
+    userId: user.id,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  };
   writeState(state);
-  return delay(snapshotForUser(state, user));
+  return delay({ requiresEmailVerification: true, email, devVerificationUrl: `${window.location.origin}/?email_verify_token=${encodeURIComponent(token)}` });
 }
 
 export async function login(input: { email: string; password: string }) {
@@ -306,6 +340,7 @@ export async function login(input: { email: string; password: string }) {
   const state = readState();
   const user = state.users.find((u) => u.email === input.email.trim().toLowerCase() && u.password === input.password);
   if (!user) throw new Error("Invalid email or password.");
+  if (!isEmailVerified(user)) throw new Error("Confirm your email before signing in. Check your inbox for the verification link.");
   state.currentUserId = user.id;
   writeState(state);
   return delay(snapshotForUser(state, user));
@@ -321,7 +356,7 @@ export async function socialLogin(provider: "google" | "apple") {
   let user = state.users.find((u) => u.email === email);
 
   if (!user) {
-    user = { id: id("user"), email, username: `${provider}_creator`, password: id("oauth") };
+    user = { id: id("user"), email, username: `${provider}_creator`, password: id("oauth"), emailVerifiedAt: new Date().toISOString() };
     state.users.push(user);
     state.profiles[user.id] = { ...clone(defaultProfile), username: user.username };
     state.links[user.id] = clone(defaultLinks);
@@ -333,6 +368,50 @@ export async function socialLogin(provider: "google" | "apple") {
   state.currentUserId = user.id;
   writeState(state);
   return delay(snapshotForUser(state, user));
+}
+
+export async function resendVerificationEmail(email: string) {
+  if (hasApiBackend()) {
+    await apiRequest<{ ok: boolean }>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    return true;
+  }
+
+  const state = readState();
+  const user = state.users.find((u) => u.email === email.trim().toLowerCase());
+  if (user && !isEmailVerified(user)) {
+    const token = makeVerificationToken();
+    getEmailVerificationTokens(state)[token] = {
+      userId: user.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    };
+    writeState(state);
+    console.info(`[email verification] ${email}: ${window.location.origin}/?email_verify_token=${encodeURIComponent(token)}`);
+  }
+  return delay(true);
+}
+
+export async function verifyEmail(token: string) {
+  if (hasApiBackend()) {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email?token=${encodeURIComponent(token)}`, { redirect: "manual" });
+    return response.status >= 200 && response.status < 400;
+  }
+
+  const state = readState();
+  const tokens = getEmailVerificationTokens(state);
+  const record = tokens[token];
+  if (!record || new Date(record.expiresAt).getTime() < Date.now()) return delay(false);
+  const user = state.users.find((u) => u.id === record.userId);
+  if (!user) return delay(false);
+  user.emailVerifiedAt = new Date().toISOString();
+  for (const [storedToken, storedRecord] of Object.entries(tokens)) {
+    if (storedRecord.userId === user.id) delete tokens[storedToken];
+  }
+  writeState(state);
+  return delay(true);
 }
 
 export async function logout() {

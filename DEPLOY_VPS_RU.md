@@ -442,8 +442,7 @@ cd /var/www/linkflow/current
 Установи зависимости:
 
 ```bash
-pnpm install --frozen-lockfile
-```
+pnpm verify```
 
 Проверь типы и сборку:
 

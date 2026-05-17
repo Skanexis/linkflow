@@ -214,9 +214,9 @@ function WidgetConfigForm({
       return (
         <>
           <div>
-            <label style={labelStyle}>Playable preset</label>
+            <label style={labelStyle}>Spotify preset</label>
             <select
-              value={widget.config.trackId ?? "neon"}
+              value={widget.config.trackId ?? "blinding-lights"}
               onChange={(e) => {
                 const preset = MUSIC_TRACK_PRESETS.find((track) => track.id === e.target.value);
                 onUpdate(widget.id, {
@@ -225,6 +225,7 @@ function WidgetConfigForm({
                     trackId: e.target.value,
                     song: preset?.song ?? widget.config.song,
                     artist: preset?.artist ?? widget.config.artist,
+                    spotifyUrl: preset?.spotifyUrl ?? widget.config.spotifyUrl,
                   },
                 });
               }}
@@ -234,13 +235,14 @@ function WidgetConfigForm({
             >
               {MUSIC_TRACK_PRESETS.map((track) => (
                 <option key={track.id} value={track.id}>
-                  {track.song} - {track.bpm} BPM
+                  {track.song} - {track.artist}
                 </option>
               ))}
             </select>
           </div>
           {textField("Display title", "song", "Song title")}
           {textField("Display artist", "artist", "Artist name")}
+          {textField("Spotify track / album / playlist URL", "spotifyUrl", "https://open.spotify.com/track/...")}
         </>
       );
 

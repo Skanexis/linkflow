@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Image, Layers, Palette, Type, Upload } from "lucide-react";
+import { Check, Image, Layers, Type, Upload } from "lucide-react";
 import type { ProfileTheme } from "../App";
 
 const PRESET_THEMES: {
@@ -37,14 +37,7 @@ const FONTS = [
   { value: "JetBrains Mono", label: "JetBrains Mono", preview: "dev@linkflow:~$" },
 ];
 
-const PRIMARY_COLORS = [
-  "#a855f7", "#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
-  "#8b5cf6", "#14b8a6", "#f97316", "#06b6d4", "#84cc16", "#f5f5f5",
-];
-
-const TEXT_COLORS = ["#ffffff", "#f8fafc", "#fef3c7", "#dcfce7", "#e0f2fe", "#0f172a", "#111827", "#000000"];
-
-type Tab = "background" | "profile" | "widgets" | "typography";
+type Tab = "background" | "widgets" | "typography";
 
 interface AppearanceEditorProps {
   theme: ProfileTheme;
@@ -55,7 +48,6 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
   const [currentTab, setCurrentTab] = useState<Tab>("background");
   const tabs: { id: Tab; label: string; icon: React.ComponentType<any> }[] = [
     { id: "background", label: "Background", icon: Image },
-    { id: "profile", label: "Profile", icon: Palette },
     { id: "widgets", label: "Blocks", icon: Layers },
     { id: "typography", label: "Fonts", icon: Type },
   ];
@@ -76,7 +68,7 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-4 gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.05)" }}>
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.05)" }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -181,12 +173,6 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
           <Panel title="Colors">
             <ColorRow label="Background 1" value={theme.bgColor1} onChange={(value) => onUpdate({ bgColor1: value })} />
             <ColorRow label="Background 2" value={theme.bgColor2} onChange={(value) => onUpdate({ bgColor2: value })} />
-            <ColorRow label="Accent" value={theme.primaryColor} onChange={(value) => onUpdate({ primaryColor: value })} />
-            <div className="mt-3 flex flex-wrap gap-2">
-              {PRIMARY_COLORS.map((color) => (
-                <Swatch key={color} color={color} selected={theme.primaryColor === color} onClick={() => onUpdate({ primaryColor: color })} />
-              ))}
-            </div>
           </Panel>
 
           <Panel title="Image Overlay">
@@ -198,41 +184,6 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
               onChange={(event) => onUpdate({ backgroundOverlay: Number(event.target.value) })}
               className="w-full accent-violet-500"
             />
-          </Panel>
-        </div>
-      )}
-
-      {currentTab === "profile" && (
-        <div className="space-y-5">
-          <Panel title="Profile Header Style">
-            <ChoiceGrid
-              value={theme.profileStyle ?? "halo"}
-              options={[
-                ["halo", "Halo", "Centered glow avatar"],
-                ["editorial", "Editorial", "Bold name treatment"],
-                ["terminal", "Terminal", "Developer console vibe"],
-                ["poster", "Poster", "Large creator badge"],
-              ]}
-              onChange={(value) => onUpdate({ profileStyle: value as NonNullable<ProfileTheme["profileStyle"]> })}
-            />
-          </Panel>
-          <Panel title="Content Width">
-            <Segmented
-              value={theme.contentWidth ?? "comfortable"}
-              options={[
-                ["compact", "Compact"],
-                ["comfortable", "Comfort"],
-                ["wide", "Wide"],
-              ]}
-              onChange={(value) => onUpdate({ contentWidth: value as NonNullable<ProfileTheme["contentWidth"]> })}
-            />
-          </Panel>
-          <Panel title="Text Color">
-            <div className="flex flex-wrap gap-2">
-              {TEXT_COLORS.map((color) => (
-                <Swatch key={color} color={color} selected={theme.textColor === color} onClick={() => onUpdate({ textColor: color })} />
-              ))}
-            </div>
           </Panel>
         </div>
       )}
@@ -289,6 +240,17 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
                 ["grid", "Grid"],
               ]}
               onChange={(value) => onUpdate({ layoutMode: value as ProfileTheme["layoutMode"] })}
+            />
+          </Panel>
+          <Panel title="Page Width">
+            <Segmented
+              value={theme.contentWidth ?? "comfortable"}
+              options={[
+                ["compact", "Compact"],
+                ["comfortable", "Comfort"],
+                ["wide", "Wide"],
+              ]}
+              onChange={(value) => onUpdate({ contentWidth: value as NonNullable<ProfileTheme["contentWidth"]> })}
             />
           </Panel>
         </div>
@@ -386,24 +348,6 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
         style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", fontSize: "12px" }}
       />
     </div>
-  );
-}
-
-function Swatch({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-full transition-all"
-      style={{
-        width: "30px",
-        height: "30px",
-        background: color,
-        border: color === "#ffffff" || color === "#f5f5f5" ? "1px solid rgba(0,0,0,0.2)" : "1px solid rgba(255,255,255,0.2)",
-        outline: selected ? "2px solid white" : "none",
-        outlineOffset: "2px",
-        transform: selected ? "scale(1.12)" : "scale(1)",
-      }}
-    />
   );
 }
 

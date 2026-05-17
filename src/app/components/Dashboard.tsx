@@ -259,7 +259,7 @@ export function Dashboard({
                   {section === "widgets" && `${widgets.filter((w) => w.visible).length} active widgets`}
                   {section === "appearance" && "Customize your page's look and feel"}
                   {section === "analytics" && "Track your page performance"}
-                  {section === "profile" && "Manage your public profile info"}
+                  {section === "profile" && "Manage your identity, avatar, accent, icons, and motion"}
                 </p>
               </div>
               <button
@@ -281,7 +281,7 @@ export function Dashboard({
 
             {/* Section content */}
             {section === "profile" && (
-              <ProfileEditor profile={profile} onUpdate={onUpdateProfile} />
+              <ProfileEditor profile={profile} theme={theme} onUpdate={onUpdateProfile} onUpdateTheme={onUpdateTheme} />
             )}
             {section === "links" && (
               <LinksManager

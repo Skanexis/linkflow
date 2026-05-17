@@ -6,7 +6,10 @@ interface AuthPageProps {
   mode: "login" | "register";
   onModeChange: (mode: "login" | "register") => void;
   error?: string | null;
+  notice?: string | null;
+  pendingVerificationEmail?: string | null;
   onAuth: (input: { mode: "login" | "register"; email: string; password: string; username?: string }) => Promise<void>;
+  onResendVerification: (email: string) => Promise<void>;
   onSocialAuth: (provider: "google" | "apple") => Promise<void>;
   onBack: () => void;
 }
@@ -27,13 +30,14 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   return map[score];
 }
 
-export function AuthPage({ mode, onModeChange, error, onAuth, onSocialAuth, onBack }: AuthPageProps) {
+export function AuthPage({ mode, onModeChange, error, notice, pendingVerificationEmail, onAuth, onResendVerification, onSocialAuth, onBack }: AuthPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const pwStrength = mode === "register" ? getPasswordStrength(password) : null;
 
@@ -52,6 +56,17 @@ export function AuthPage({ mode, onModeChange, error, onAuth, onSocialAuth, onBa
     setLoading(true);
     await onAuth({ mode, email, password, username });
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    const targetEmail = pendingVerificationEmail || email;
+    if (!targetEmail.includes("@")) {
+      setErrors((current) => ({ ...current, email: "Enter the email you registered with" }));
+      return;
+    }
+    setResending(true);
+    await onResendVerification(targetEmail);
+    setResending(false);
   };
 
   return (
@@ -137,6 +152,26 @@ export function AuthPage({ mode, onModeChange, error, onAuth, onSocialAuth, onBa
                 style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#fca5a5", fontSize: "13px" }}
               >
                 {error}
+              </div>
+            )}
+
+            {notice && (
+              <div
+                className="rounded-xl px-4 py-3"
+                style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#bbf7d0", fontSize: "13px", lineHeight: 1.5 }}
+              >
+                <p>{notice}</p>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    className="mt-2 text-emerald-200 hover:text-white transition-colors"
+                    style={{ fontSize: "12px", fontWeight: 700, opacity: resending ? 0.65 : 1 }}
+                  >
+                    {resending ? "Sending..." : "Resend verification email"}
+                  </button>
+                )}
               </div>
             )}
 

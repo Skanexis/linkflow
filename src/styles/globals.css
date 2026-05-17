@@ -26,3 +26,143 @@
     border-color: rgba(255, 255, 255, 0.24);
   }
 }
+
+.profile-app-shell {
+  scrollbar-gutter: stable both-edges;
+}
+
+.profile-app-shell *,
+.profile-app-shell *::before,
+.profile-app-shell *::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.profile-safe-shell {
+  transform: translateZ(0);
+}
+
+.profile-text-wrap,
+.profile-link-label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.profile-link-label {
+  display: block;
+  line-height: 1.35;
+}
+
+.profile-app-shell iframe,
+.profile-app-shell img,
+.profile-app-shell video {
+  max-width: 100%;
+}
+
+.profile-widget-card {
+  container-type: inline-size;
+}
+
+.profile-widget-title,
+.profile-widget-copy {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.profile-widget-title {
+  line-height: 1.25;
+}
+
+.profile-widget-copy {
+  line-height: 1.35;
+}
+
+.profile-widget-input {
+  flex: 1 1 0;
+}
+
+.profile-widget-action {
+  white-space: nowrap;
+}
+
+.profile-widget-auto-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+}
+
+@container (max-width: 360px) {
+  .profile-widget-adaptive {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .profile-widget-form {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .profile-widget-form .profile-widget-input {
+    width: 100% !important;
+  }
+
+  .profile-widget-adaptive > a {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .profile-widget-heading-row {
+    flex-wrap: wrap;
+  }
+
+  .profile-widget-message {
+    position: static !important;
+    grid-column: 1 / -1;
+    margin-top: 4px;
+  }
+}
+
+@container (max-width: 280px) {
+  .profile-widget-form {
+    flex-wrap: wrap;
+  }
+
+  .profile-widget-form .profile-widget-action {
+    width: 100%;
+    min-height: 34px;
+  }
+
+  .profile-widget-email .profile-widget-form .profile-widget-action,
+  .profile-widget-chat .profile-widget-form .profile-widget-action {
+    flex: 1 1 100%;
+  }
+}
+
+@supports (height: 100svh) {
+  .profile-app-shell[data-preview="false"] {
+    min-height: 100svh;
+    height: 100svh;
+  }
+}
+
+@supports (height: 100dvh) {
+  .profile-app-shell[data-preview="false"] {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-widget-adaptive {
+    flex-wrap: wrap;
+  }
+
+  .profile-app-shell[data-preview="false"] input,
+  .profile-app-shell[data-preview="false"] textarea,
+  .profile-app-shell[data-preview="false"] button,
+  .profile-app-shell[data-preview="false"] a {
+    max-width: 100%;
+  }
+}

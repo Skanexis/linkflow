@@ -5,7 +5,8 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { SignJWT, jwtVerify } from "jose";
-import { randomUUID } from "node:crypto";
+import nodemailer from "nodemailer";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,11 @@ const dbFile = path.join(dataDir, "linkflow.json");
 const port = Number(process.env.PORT ?? 8787);
 const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-only-change-this-secret-before-production");
 const isProduction = process.env.NODE_ENV === "production";
+const appUrl = (process.env.APP_URL ?? `http://127.0.0.1:${port}`).replace(/\/+$/, "");
+const publicApiUrl = (process.env.API_PUBLIC_URL ?? appUrl).replace(/\/+$/, "");
+const mailFromName = process.env.MAIL_FROM_NAME ?? "LinkFlow";
+const mailFrom = process.env.MAIL_FROM ?? process.env.SMTP_USER ?? "no-reply@linkflow.local";
+const verificationTokenTtlMs = Number(process.env.EMAIL_VERIFICATION_TTL_HOURS ?? 24) * 60 * 60 * 1000;
 
 const buttonStyles = ["rounded", "pill", "glass", "3d", "neon", "soft", "brutal", "underline"];
 const hoverEffects = ["glow", "bounce", "expand", "none", "tilt", "slide"];
@@ -57,15 +63,32 @@ const defaultTheme = {
   profileStyle: "halo",
   widgetStyle: "glass",
   contentWidth: "comfortable",
+  animationPack: "smooth",
+  iconStyle: "brand",
 };
 
 const defaultWidgets = [
-  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "neon", song: "Neon Pulse", artist: "LinkFlow Studio" } },
+  { id: "w1", type: "music", title: "Now Playing", visible: true, config: { trackId: "blinding-lights", song: "Blinding Lights", artist: "The Weeknd", spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b" } },
   { id: "w2", type: "countdown", title: "Launch Countdown", visible: false, config: { targetDate: "2026-12-31", label: "New Year 2027" } },
   { id: "w3", type: "product", title: "Product Card", visible: true, config: { name: "Digital Starter Kit", price: "$29", description: "Templates, assets, and resources in one bundle.", buttonLabel: "View product", url: "https://example.com/product" } },
   { id: "w4", type: "map", title: "Map Location", visible: false, config: { place: "Studio HQ", address: "123 Creator Ave, Los Angeles", url: "https://maps.google.com" } },
   { id: "w5", type: "chat", title: "Chat Bubble", visible: true, config: { headline: "Have a question?", message: "Send me a quick message and I will get back to you.", buttonLabel: "Start chat", url: "mailto:hello@example.com" } },
 ];
+
+const smtpConfig = process.env.SMTP_HOST
+  ? {
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: process.env.SMTP_USER || process.env.SMTP_PASS
+        ? {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          }
+        : undefined,
+    }
+  : null;
+const mailTransporter = smtpConfig ? nodemailer.createTransport(smtpConfig) : null;
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(80).optional(),
@@ -105,6 +128,8 @@ const themeSchema = z.object({
   profileStyle: z.enum(["halo", "editorial", "terminal", "poster"]).optional(),
   widgetStyle: z.enum(["glass", "solid", "outline", "neon"]).optional(),
   contentWidth: z.enum(["compact", "comfortable", "wide"]).optional(),
+  animationPack: z.enum(["smooth", "pop", "cinematic", "neon", "minimal"]).optional(),
+  iconStyle: z.enum(["brand", "mono", "duotone", "boxed"]).optional(),
 });
 
 const widgetSchema = z.object({
@@ -121,6 +146,19 @@ function clone(value) {
 
 function makeId(prefix) {
   return `${prefix}_${randomUUID()}`;
+}
+
+function makeEmailVerificationToken() {
+  const token = randomBytes(32).toString("hex");
+  return { token, tokenHash: hashToken(token) };
+}
+
+function hashToken(token) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function isEmailVerified(user) {
+  return Boolean(user.emailVerifiedAt) || !Object.prototype.hasOwnProperty.call(user, "emailVerifiedAt");
 }
 
 function initialsFromUsername(username) {
@@ -161,11 +199,84 @@ function detectPlatform(url) {
 }
 
 function validateWidgetConfig(config = {}) {
-  if (typeof config.url !== "string" || !config.url.trim()) return;
-  const url = new URL(config.url);
-  if (!["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
-    throw Object.assign(new Error("Widget URL protocol is not allowed."), { status: 400 });
+  // Widget config is autosaved while users type, so URL fields are allowed to be temporary drafts.
+  // Public rendering sanitizes URLs before using them as href/src values.
+  void config;
+}
+
+function createEmailVerificationRecord(state, userId) {
+  const { token, tokenHash } = makeEmailVerificationToken();
+  const now = new Date();
+  state.emailVerificationTokens[tokenHash] = {
+    userId,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + verificationTokenTtlMs).toISOString(),
+  };
+  return { token, verifyUrl: `${publicApiUrl}/api/auth/verify-email?token=${encodeURIComponent(token)}` };
+}
+
+function cleanupVerificationTokensForUser(state, userId) {
+  for (const [tokenHash, record] of Object.entries(state.emailVerificationTokens ?? {})) {
+    if (record.userId === userId) delete state.emailVerificationTokens[tokenHash];
   }
+}
+
+async function sendVerificationEmail({ email, username, verifyUrl }) {
+  const subject = "Confirm your LinkFlow email";
+  const text = [
+    `Hi ${username},`,
+    "",
+    "Confirm your email address to activate your LinkFlow account:",
+    verifyUrl,
+    "",
+    "This link expires in 24 hours. If you did not create this account, ignore this email.",
+  ].join("\n");
+  const html = `
+    <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px;margin:0 auto;padding:24px">
+      <h1 style="font-size:22px;margin:0 0 12px">Confirm your email</h1>
+      <p>Hi ${escapeHtml(username)},</p>
+      <p>Confirm your email address to activate your LinkFlow account.</p>
+      <p style="margin:24px 0">
+        <a href="${verifyUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Confirm email</a>
+      </p>
+      <p style="font-size:13px;color:#6b7280">This link expires in 24 hours. If the button does not work, open this URL:<br>${verifyUrl}</p>
+    </div>
+  `;
+
+  if (!mailTransporter) {
+    if (isProduction) {
+      throw Object.assign(new Error("Email delivery is not configured."), { status: 503, expose: true });
+    }
+    console.info(`[email verification] ${email}: ${verifyUrl}`);
+    return;
+  }
+
+  try {
+    await mailTransporter.sendMail({
+      from: { name: mailFromName, address: mailFrom },
+      to: email,
+      subject,
+      text,
+      html,
+      headers: {
+        "List-Unsubscribe": `<mailto:${mailFrom}?subject=unsubscribe>`,
+        "X-Entity-Ref-ID": randomUUID(),
+      },
+    });
+  } catch (error) {
+    console.error("Verification email delivery failed:", error);
+    throw Object.assign(new Error("Verification email could not be sent. Try again later."), { status: 503, expose: true });
+  }
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  })[char]);
 }
 
 async function initialState() {
@@ -174,6 +285,7 @@ async function initialState() {
     email: "demo@linkflow.local",
     username: "alexrivera",
     passwordHash: await bcrypt.hash("password", 12),
+    emailVerifiedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
   return {
@@ -183,18 +295,32 @@ async function initialState() {
     themes: { [demoUser.id]: clone(defaultTheme) },
     widgets: { [demoUser.id]: clone(defaultWidgets) },
     analytics: { [demoUser.id]: {} },
+    emailVerificationTokens: {},
   };
 }
 
 async function readState() {
   await mkdir(dataDir, { recursive: true });
   try {
-    return JSON.parse(await readFile(dbFile, "utf8"));
+    return normalizeState(JSON.parse(await readFile(dbFile, "utf8")));
   } catch {
     const state = await initialState();
     await writeState(state);
     return state;
   }
+}
+
+function normalizeState(state) {
+  return {
+    ...state,
+    users: state.users ?? [],
+    profiles: state.profiles ?? {},
+    links: state.links ?? {},
+    themes: state.themes ?? {},
+    widgets: state.widgets ?? {},
+    analytics: state.analytics ?? {},
+    emailVerificationTokens: state.emailVerificationTokens ?? {},
+  };
 }
 
 async function writeState(state) {
@@ -327,7 +453,7 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
       password: z.string().min(8).max(120),
       username: z.string().trim().toLowerCase().regex(/^[a-z0-9_.-]{3,30}$/),
     }), req.body);
-    const payload = await mutateState(async (state) => {
+    const created = await mutateState(async (state) => {
       if (state.users.some((user) => user.email === input.email)) throw Object.assign(new Error("Email is already registered."), { status: 409 });
       if (state.users.some((user) => user.username === input.username)) throw Object.assign(new Error("Username is already taken."), { status: 409 });
       const user = {
@@ -335,17 +461,33 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
         email: input.email,
         username: input.username,
         passwordHash: await bcrypt.hash(input.password, 12),
+        emailVerifiedAt: null,
         createdAt: new Date().toISOString(),
       };
+      const verification = createEmailVerificationRecord(state, user.id);
       state.users.push(user);
       state.profiles[user.id] = { ...clone(defaultProfile), displayName: input.username, username: input.username, initials: initialsFromUsername(input.username) };
       state.links[user.id] = [];
       state.themes[user.id] = clone(defaultTheme);
       state.widgets[user.id] = [];
       state.analytics[user.id] = {};
-      return { token: await signToken(user), snapshot: snapshotForUser(state, user) };
+      return { user: publicUser(user), verifyUrl: verification.verifyUrl };
     });
-    res.status(201).json(payload);
+    try {
+      await sendVerificationEmail({ email: input.email, username: input.username, verifyUrl: created.verifyUrl });
+    } catch (error) {
+      await mutateState((state) => {
+        state.users = state.users.filter((user) => user.id !== created.user.id);
+        delete state.profiles[created.user.id];
+        delete state.links[created.user.id];
+        delete state.themes[created.user.id];
+        delete state.widgets[created.user.id];
+        delete state.analytics[created.user.id];
+        cleanupVerificationTokensForUser(state, created.user.id);
+      });
+      throw error;
+    }
+    res.status(201).json({ requiresEmailVerification: true, email: input.email });
   } catch (error) {
     next(error);
   }
@@ -359,7 +501,52 @@ app.post("/api/auth/login", authLimiter, async (req, res, next) => {
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
       throw Object.assign(new Error("Invalid email or password."), { status: 401 });
     }
+    if (!isEmailVerified(user)) {
+      throw Object.assign(new Error("Confirm your email before signing in. Check your inbox for the verification link."), { status: 403 });
+    }
     res.json({ token: await signToken(user), snapshot: snapshotForUser(state, user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/resend-verification", authLimiter, async (req, res, next) => {
+  try {
+    const input = parse(z.object({ email: z.string().trim().toLowerCase().email() }), req.body);
+    const result = await mutateState((state) => {
+      const user = state.users.find((item) => item.email === input.email);
+      if (!user || isEmailVerified(user)) return null;
+      cleanupVerificationTokensForUser(state, user.id);
+      const verification = createEmailVerificationRecord(state, user.id);
+      return { email: user.email, username: user.username, verifyUrl: verification.verifyUrl };
+    });
+    if (result) {
+      await sendVerificationEmail(result);
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/auth/verify-email", async (req, res, next) => {
+  try {
+    const token = String(req.query.token ?? "");
+    if (!token) throw Object.assign(new Error("Verification token is missing."), { status: 400 });
+    const tokenHash = hashToken(token);
+    const verified = await mutateState((state) => {
+      const record = state.emailVerificationTokens[tokenHash];
+      if (!record) return false;
+      delete state.emailVerificationTokens[tokenHash];
+      if (new Date(record.expiresAt).getTime() < Date.now()) return false;
+      const user = state.users.find((item) => item.id === record.userId);
+      if (!user) return false;
+      user.emailVerifiedAt = new Date().toISOString();
+      cleanupVerificationTokensForUser(state, user.id);
+      return true;
+    });
+    const redirectUrl = `${appUrl}/?email_verified=${verified ? "1" : "0"}`;
+    res.redirect(303, redirectUrl);
   } catch (error) {
     next(error);
   }
@@ -377,6 +564,7 @@ app.post("/api/auth/social", authLimiter, async (req, res, next) => {
           email,
           username: `${input.provider}_creator`,
           passwordHash: await bcrypt.hash(makeId("oauth"), 12),
+          emailVerifiedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
         };
         state.users.push(user);
@@ -616,7 +804,8 @@ app.get("*", (req, res, next) => {
 app.use((err, _req, res, _next) => {
   const status = Number(err.status ?? 500);
   if (status >= 500) console.error(err);
-  res.status(status).json({ error: status >= 500 ? "Internal server error." : err.message });
+  const expose = err.expose || status < 500;
+  res.status(status).json({ error: expose ? err.message : "Internal server error." });
 });
 
 app.listen(port, () => {

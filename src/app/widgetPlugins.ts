@@ -13,20 +13,25 @@ export interface WidgetPlugin {
 }
 
 export const MUSIC_TRACK_PRESETS = [
-  { id: "neon", song: "Neon Pulse", artist: "LinkFlow Studio", bpm: 118, color: "#1DB954", bass: 82, lead: 246 },
-  { id: "midnight", song: "Midnight Drive", artist: "Chromatic FM", bpm: 96, color: "#38bdf8", bass: 65, lead: 196 },
-  { id: "arcade", song: "Arcade Bloom", artist: "Pixel Hearts", bpm: 132, color: "#f472b6", bass: 98, lead: 329 },
-  { id: "lofi", song: "Soft Focus", artist: "Rainroom", bpm: 74, color: "#f59e0b", bass: 55, lead: 164 },
+  { id: "blinding-lights", song: "Blinding Lights", artist: "The Weeknd", color: "#1DB954", spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b", bpm: 171, bass: 82, lead: 246 },
+  { id: "get-lucky", song: "Get Lucky", artist: "Daft Punk", color: "#f59e0b", spotifyUrl: "https://open.spotify.com/track/2Foc5Q5nqNiosCNqttzHof", bpm: 116, bass: 65, lead: 196 },
+  { id: "bad-guy", song: "bad guy", artist: "Billie Eilish", color: "#a3e635", spotifyUrl: "https://open.spotify.com/track/2Fxmhks0bxGSBdJ92vM42m", bpm: 135, bass: 98, lead: 329 },
+  { id: "never-gonna-give-you-up", song: "Never Gonna Give You Up", artist: "Rick Astley", color: "#38bdf8", spotifyUrl: "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT", bpm: 113, bass: 55, lead: 164 },
 ];
 
 export const WIDGET_PLUGINS: WidgetPlugin[] = [
   {
     type: "music",
     label: "Music Player",
-    description: "Show what you're listening to",
+    description: "Embed a playable Spotify track",
     icon: Music,
     color: "#1DB954",
-    defaultConfig: { trackId: "neon", song: "Neon Pulse", artist: "LinkFlow Studio" },
+    defaultConfig: {
+      trackId: "blinding-lights",
+      song: "Blinding Lights",
+      artist: "The Weeknd",
+      spotifyUrl: "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b",
+    },
   },
   {
     type: "countdown",
