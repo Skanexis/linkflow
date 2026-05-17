@@ -59,11 +59,11 @@ export interface ProfileTheme {
 }
 
 const defaultProfile: UserProfile = {
-  displayName: "Alex Rivera",
-  username: "alexrivera",
-  bio: "Designer and developer building useful digital products.",
-  avatarColor: "#25d0b2",
-  initials: "AR",
+  displayName: "New Creator",
+  username: "creator",
+  bio: "",
+  avatarColor: "#7c3aed",
+  initials: "LC",
 };
 
 const defaultLinks: LinkItem[] = [
@@ -77,14 +77,14 @@ const defaultLinks: LinkItem[] = [
 
 const defaultTheme: ProfileTheme = {
   backgroundType: 'gradient',
-  bgColor1: '#0b100f',
-  bgColor2: '#16352e',
+  bgColor1: '#0f0c29',
+  bgColor2: '#302b63',
   buttonStyle: 'pill',
   hoverEffect: 'glow',
   layoutMode: 'vertical',
   fontFamily: 'Inter',
-  primaryColor: '#25d0b2',
-  textColor: '#f6f2e8',
+  primaryColor: '#a855f7',
+  textColor: '#ffffff',
   backgroundPattern: 'grid',
   backgroundOverlay: 45,
   profileStyle: 'halo',
@@ -102,7 +102,7 @@ const defaultWidgets: WidgetItem[] = [
 
 function AppLoading() {
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-[#0b100f] text-white/60" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div className="min-h-dvh flex items-center justify-center bg-[#030007] text-white/60" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       Loading LinkFlow...
     </div>
   );
@@ -130,8 +130,34 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const authToken = params.get("auth_token");
+    const authErrorParam = params.get("auth_error");
     const localEmailToken = params.get("email_verify_token");
     const emailVerified = params.get("email_verified");
+
+    if (authToken) {
+      window.history.replaceState(null, "", window.location.pathname);
+      backend
+        .completeOAuthLogin(authToken)
+        .then((snapshot) => {
+          applySnapshot(snapshot);
+          setView("dashboard");
+        })
+        .catch((error) => {
+          setAuthMode("login");
+          setAuthError(error instanceof Error ? error.message : "Google sign-in failed.");
+          setView("auth");
+        });
+      return;
+    }
+
+    if (authErrorParam) {
+      window.history.replaceState(null, "", window.location.pathname);
+      setAuthMode("login");
+      setAuthError(authErrorParam);
+      setView("auth");
+      return;
+    }
 
     if (localEmailToken) {
       backend.verifyEmail(localEmailToken).then((verified) => {
@@ -211,11 +237,14 @@ export default function App() {
 
   const handleSocialAuth = useCallback(
     async (provider: "google") => {
-      const snapshot = await backend.socialLogin(provider);
-      applySnapshot(snapshot);
-      setView("dashboard");
+      try {
+        setAuthError(null);
+        await backend.socialLogin(provider);
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : "Google sign-in failed.");
+      }
     },
-    [applySnapshot]
+    []
   );
 
   const handleBackendError = useCallback((error: unknown) => {
@@ -280,8 +309,8 @@ export default function App() {
 
   const shellClassName =
     view === "dashboard"
-      ? "h-dvh overflow-hidden bg-[#0b100f]"
-      : "min-h-dvh overflow-x-hidden bg-[#0b100f]";
+      ? "h-dvh overflow-hidden bg-[#07070f]"
+      : "min-h-dvh overflow-x-hidden bg-[#030007]";
 
   return (
     <div className={shellClassName}>

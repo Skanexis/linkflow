@@ -3,16 +3,16 @@ import { motion } from "motion/react";
 import { Sparkles, Eye, EyeOff, ArrowLeft, Chrome } from "lucide-react";
 
 const AUTH_THEME = {
-  bg: "#0b100f",
-  panel: "rgba(246, 242, 232, 0.065)",
-  panelStrong: "rgba(246, 242, 232, 0.1)",
-  border: "rgba(246, 242, 232, 0.12)",
-  text: "#f6f2e8",
-  muted: "rgba(246, 242, 232, 0.58)",
-  soft: "rgba(246, 242, 232, 0.34)",
-  teal: "#25d0b2",
-  amber: "#f5b84b",
-  coral: "#ff7a59",
+  bg: "#030007",
+  panel: "rgba(255, 255, 255, 0.045)",
+  panelStrong: "rgba(255, 255, 255, 0.08)",
+  border: "rgba(255, 255, 255, 0.1)",
+  text: "#ffffff",
+  muted: "rgba(255, 255, 255, 0.58)",
+  soft: "rgba(255, 255, 255, 0.32)",
+  teal: "#a855f7",
+  amber: "#ec4899",
+  coral: "#ef4444",
 };
 
 interface AuthPageProps {
@@ -88,7 +88,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
       style={{
         background: AUTH_THEME.bg,
         backgroundImage:
-          "linear-gradient(rgba(246,242,232,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(246,242,232,0.04) 1px, transparent 1px)",
+          "linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(236,72,153,0.045) 1px, transparent 1px)",
         backgroundSize: "42px 42px",
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
@@ -97,12 +97,12 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
         className="fixed inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(125deg, rgba(37,208,178,0.12), transparent 34%), linear-gradient(235deg, rgba(245,184,75,0.1), transparent 36%)",
+            "linear-gradient(125deg, rgba(124,58,237,0.22), transparent 34%), linear-gradient(235deg, rgba(236,72,153,0.16), transparent 36%)",
         }}
       />
       <div
         className="fixed inset-x-0 bottom-0 h-40 pointer-events-none"
-        style={{ background: "linear-gradient(to top, rgba(11,16,15,0.94), transparent)" }}
+        style={{ background: "linear-gradient(to top, rgba(3,0,7,0.94), transparent)" }}
       />
 
       <div className="pointer-events-none fixed left-1/2 top-8 hidden w-[min(760px,calc(100vw-32px))] -translate-x-1/2 grid-cols-3 gap-3 md:grid">
@@ -145,7 +145,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
           <div className="mb-6 flex items-center gap-2 sm:mb-8">
             <div
               className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ background: `linear-gradient(135deg, ${AUTH_THEME.teal}, ${AUTH_THEME.amber})`, color: "#07100e" }}
+              style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#ffffff" }}
             >
               <Sparkles size={15} />
             </div>
@@ -177,7 +177,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                   fontSize: "14px",
                   fontWeight: 800,
                   background: mode === m ? AUTH_THEME.text : "transparent",
-                  color: mode === m ? "#101714" : AUTH_THEME.muted,
+                  color: mode === m ? "#030007" : AUTH_THEME.muted,
                 }}
               >
                 {m === "register" ? "Create account" : "Sign in"}
@@ -346,12 +346,12 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
               disabled={loading}
               className="mt-2 w-full rounded-lg py-3.5 transition-transform hover:-translate-y-0.5"
               style={{
-                background: `linear-gradient(135deg, ${AUTH_THEME.teal} 0%, ${AUTH_THEME.amber} 100%)`,
-                color: "#07100e",
+                background: "linear-gradient(135deg, #7c3aed 0%, #db2777 100%)",
+                color: "#ffffff",
                 fontSize: "15px",
                 fontWeight: 900,
                 opacity: loading ? 0.7 : 1,
-                boxShadow: "0 16px 38px rgba(37,208,178,0.16)",
+                boxShadow: "0 16px 38px rgba(124,58,237,0.28)",
               }}
             >
               {loading

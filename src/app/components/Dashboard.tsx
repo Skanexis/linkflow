@@ -48,17 +48,17 @@ const NAV_ITEMS: { id: Section; icon: React.ComponentType<any>; label: string }[
 ];
 
 const DASH_THEME = {
-  bg: "#0b100f",
-  sidebar: "#0f1614",
-  panel: "#111916",
-  panelSoft: "rgba(246, 242, 232, 0.055)",
-  border: "rgba(246, 242, 232, 0.1)",
-  text: "#f6f2e8",
-  muted: "rgba(246, 242, 232, 0.58)",
-  soft: "rgba(246, 242, 232, 0.34)",
-  teal: "#25d0b2",
-  amber: "#f5b84b",
-  coral: "#ff7a59",
+  bg: "#07070f",
+  sidebar: "#0a0a16",
+  panel: "#0f0f1d",
+  panelSoft: "rgba(255, 255, 255, 0.06)",
+  border: "rgba(255, 255, 255, 0.06)",
+  text: "#ffffff",
+  muted: "rgba(255, 255, 255, 0.48)",
+  soft: "rgba(255, 255, 255, 0.32)",
+  teal: "#a855f7",
+  amber: "#db2777",
+  coral: "#f87171",
 };
 
 export function Dashboard({
@@ -133,7 +133,7 @@ export function Dashboard({
         >
           <div
             className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: `linear-gradient(135deg, ${DASH_THEME.teal}, ${DASH_THEME.amber})`, color: "#07100e", boxShadow: "0 10px 28px rgba(37,208,178,0.16)" }}
+            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#ffffff", boxShadow: "0 0 16px rgba(124,58,237,0.4)" }}
           >
             <Sparkles size={14} />
           </div>
@@ -192,8 +192,8 @@ export function Dashboard({
                 style={{
                   fontSize: "13px",
                   fontWeight: active ? 600 : 400,
-                  background: active ? "rgba(37, 208, 178, 0.12)" : "transparent",
-                  color: active ? "#99f6e4" : DASH_THEME.muted,
+                  background: active ? "rgba(168, 85, 247, 0.15)" : "transparent",
+                  color: active ? "#c084fc" : DASH_THEME.muted,
                   borderLeft: !isMobile && active ? `2px solid ${DASH_THEME.teal}` : "2px solid transparent",
                   borderBottom: isMobile && active ? `2px solid ${DASH_THEME.teal}` : "2px solid transparent",
                   gap: isTablet ? 0 : "12px",
@@ -349,9 +349,9 @@ export function Dashboard({
                 Live Preview
               </span>
               <div className="flex gap-1.5">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.coral}99` }} />
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.amber}99` }} />
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.teal}99` }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,95,87,0.5)" }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,189,46,0.5)" }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(40,200,64,0.5)" }} />
               </div>
             </div>
 
@@ -367,7 +367,7 @@ export function Dashboard({
                 <div
                   className="overflow-hidden rounded-[36px]"
                   style={{
-                    border: "6px solid #17201d",
+                    border: "6px solid #1a1a2e",
                     boxShadow: "0 24px 60px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.05)",
                     height: `${phoneFrameHeight}px`,
                     width: `${phoneFrameWidth}px`,
@@ -395,7 +395,7 @@ export function Dashboard({
                 {/* Home indicator */}
                 <div
                   className="mx-auto mt-2 rounded-full"
-                  style={{ width: "60px", height: "4px", background: "rgba(246,242,232,0.16)" }}
+                  style={{ width: "60px", height: "4px", background: "rgba(255,255,255,0.15)" }}
                 />
               </div>
             </div>
@@ -408,12 +408,12 @@ export function Dashboard({
                 style={{
                   fontSize: "13px",
                   fontWeight: 500,
-                  background: "rgba(37, 208, 178, 0.12)",
-                  color: "#99f6e4",
-                  border: "1px solid rgba(37, 208, 178, 0.24)",
+                  background: "rgba(168, 85, 247, 0.12)",
+                  color: "#c084fc",
+                  border: "1px solid rgba(168, 85, 247, 0.2)",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(37, 208, 178, 0.18)")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(37, 208, 178, 0.12)")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(168, 85, 247, 0.2)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(168, 85, 247, 0.12)")}
               >
                 Open full page →
               </button>

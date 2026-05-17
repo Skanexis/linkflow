@@ -2,14 +2,14 @@ import { BadgeCheck, Circle, Palette, Sparkles } from "lucide-react";
 import type { ProfileTheme, UserProfile } from "../App";
 
 const AVATAR_COLORS = [
-  "#25d0b2", "#f5b84b", "#ff7a59", "#0ea5e9",
-  "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#ec4899", "#f97316", "#6366f1",
+  "#7c3aed", "#db2777", "#0ea5e9", "#10b981",
+  "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4",
+  "#ec4899", "#14b8a6", "#f97316", "#6366f1",
 ];
 
 const ACCENT_COLORS = [
-  "#25d0b2", "#f5b84b", "#ff7a59", "#3b82f6", "#10b981", "#f59e0b",
-  "#ef4444", "#8b5cf6", "#14b8a6", "#f97316", "#06b6d4", "#f5f5f5",
+  "#a855f7", "#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
+  "#8b5cf6", "#14b8a6", "#f97316", "#06b6d4", "#84cc16", "#f5f5f5",
 ];
 
 const TEXT_COLORS = ["#ffffff", "#f8fafc", "#fef3c7", "#dcfce7", "#e0f2fe", "#0f172a", "#111827", "#000000"];
@@ -209,7 +209,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: React.Com
   return (
     <section className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
       <h3 className="mb-4 flex items-center gap-2 text-white" style={{ fontSize: "14px", fontWeight: 800 }}>
-        <Icon size={15} style={{ color: "#25d0b2" }} />
+        <Icon size={15} style={{ color: "#c084fc" }} />
         {title}
       </h3>
       {children}
@@ -275,8 +275,8 @@ function ChoiceGrid({ value, options, onChange }: { value?: string; options: [st
           onClick={() => onChange(optionValue)}
           className="rounded-xl p-3 text-left transition-all"
           style={{
-            background: value === optionValue ? "rgba(37,208,178,0.14)" : "rgba(255,255,255,0.04)",
-            border: value === optionValue ? "1px solid rgba(37,208,178,0.38)" : "1px solid rgba(255,255,255,0.07)",
+            background: value === optionValue ? "rgba(168,85,247,0.16)" : "rgba(255,255,255,0.04)",
+            border: value === optionValue ? "1px solid rgba(168,85,247,0.42)" : "1px solid rgba(255,255,255,0.07)",
           }}
         >
           <p style={{ color: "white", fontSize: "13px", fontWeight: 800 }}>{label}</p>

@@ -11,9 +11,9 @@ const PRESET_THEMES: {
   type: ProfileTheme["backgroundType"];
   pattern: NonNullable<ProfileTheme["backgroundPattern"]>;
 }[] = [
-  { name: "Calm Studio", bg1: "#0b100f", bg2: "#16352e", primary: "#25d0b2", text: "#f6f2e8", type: "gradient", pattern: "grid" },
-  { name: "Golden Hour", bg1: "#17130b", bg2: "#3a2a12", primary: "#f5b84b", text: "#fff7ed", type: "gradient", pattern: "grid" },
-  { name: "Clay Glass", bg1: "#1a1110", bg2: "#4a2118", primary: "#ff7a59", text: "#fff7ed", type: "gradient", pattern: "dots" },
+  { name: "Purple Night", bg1: "#0f0c29", bg2: "#302b63", primary: "#a855f7", text: "#ffffff", type: "gradient", pattern: "grid" },
+  { name: "Cyber Lime", bg1: "#04130d", bg2: "#12351f", primary: "#a3e635", text: "#f7fee7", type: "animated", pattern: "grid" },
+  { name: "Cherry Glass", bg1: "#210008", bg2: "#6d1231", primary: "#fb7185", text: "#fff1f2", type: "gradient", pattern: "dots" },
   { name: "Aurora", bg1: "#06111f", bg2: "#0f766e", primary: "#5eead4", text: "#ecfeff", type: "animated", pattern: "rays" },
   { name: "Ink Studio", bg1: "#050505", bg2: "#202020", primary: "#f5f5f5", text: "#ffffff", type: "solid", pattern: "none" },
   { name: "Solar Pop", bg1: "#371600", bg2: "#7c2d12", primary: "#facc15", text: "#fff7ed", type: "gradient", pattern: "rays" },
@@ -183,7 +183,7 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
               value={theme.backgroundOverlay ?? 45}
               onChange={(event) => onUpdate({ backgroundOverlay: Number(event.target.value) })}
               className="w-full"
-              style={{ accentColor: "#25d0b2" }}
+              style={{ accentColor: "#a855f7" }}
             />
           </Panel>
         </div>
@@ -255,8 +255,8 @@ export function AppearanceEditor({ theme, onUpdate }: AppearanceEditorProps) {
                 onClick={() => onUpdate({ fontFamily: font.value })}
                 className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition-all"
                 style={{
-                  background: theme.fontFamily === font.value ? "rgba(37,208,178,0.14)" : "rgba(255,255,255,0.04)",
-                  border: theme.fontFamily === font.value ? "1px solid rgba(37,208,178,0.38)" : "1px solid rgba(255,255,255,0.07)",
+                  background: theme.fontFamily === font.value ? "rgba(168,85,247,0.16)" : "rgba(255,255,255,0.04)",
+                  border: theme.fontFamily === font.value ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(255,255,255,0.07)",
                 }}
               >
                 <div>
@@ -291,9 +291,9 @@ function Segmented({ value, options, onChange }: { value?: string; options: [str
           onClick={() => onChange(optionValue)}
           className="rounded-xl px-2 py-2.5 transition-all"
           style={{
-            background: value === optionValue ? "rgba(37,208,178,0.16)" : "rgba(255,255,255,0.05)",
-            border: value === optionValue ? "1px solid rgba(37,208,178,0.42)" : "1px solid transparent",
-            color: value === optionValue ? "#99f6e4" : "rgba(255,255,255,0.48)",
+            background: value === optionValue ? "rgba(168,85,247,0.2)" : "rgba(255,255,255,0.05)",
+            border: value === optionValue ? "1px solid rgba(168,85,247,0.45)" : "1px solid transparent",
+            color: value === optionValue ? "#ddd6fe" : "rgba(255,255,255,0.48)",
             fontSize: "12px",
             fontWeight: 700,
           }}
@@ -314,8 +314,8 @@ function ChoiceGrid({ value, options, onChange }: { value?: string; options: [st
           onClick={() => onChange(optionValue)}
           className="rounded-xl p-3 text-left transition-all"
           style={{
-            background: value === optionValue ? "rgba(37,208,178,0.14)" : "rgba(255,255,255,0.04)",
-            border: value === optionValue ? "1px solid rgba(37,208,178,0.38)" : "1px solid rgba(255,255,255,0.07)",
+            background: value === optionValue ? "rgba(168,85,247,0.16)" : "rgba(255,255,255,0.04)",
+            border: value === optionValue ? "1px solid rgba(168,85,247,0.42)" : "1px solid rgba(255,255,255,0.07)",
           }}
         >
           <p style={{ color: "white", fontSize: "13px", fontWeight: 800 }}>{label}</p>
@@ -343,7 +343,7 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
 
 function CheckMark() {
   return (
-    <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "#25d0b2", color: "#07100e" }}>
+    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500 text-white">
       <Check size={11} />
     </span>
   );

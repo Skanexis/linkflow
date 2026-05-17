@@ -8,25 +8,25 @@ interface LandingPageProps {
 }
 
 const BRAND = {
-  bg: "#0b100f",
-  bgSoft: "#101714",
-  panel: "rgba(246, 242, 232, 0.055)",
-  panelStrong: "rgba(246, 242, 232, 0.09)",
-  border: "rgba(246, 242, 232, 0.11)",
-  text: "#f6f2e8",
-  muted: "rgba(246, 242, 232, 0.62)",
-  soft: "rgba(246, 242, 232, 0.38)",
-  teal: "#25d0b2",
-  amber: "#f5b84b",
-  coral: "#ff7a59",
+  bg: "#030007",
+  bgSoft: "#07030f",
+  panel: "rgba(255, 255, 255, 0.04)",
+  panelStrong: "rgba(255, 255, 255, 0.07)",
+  border: "rgba(255, 255, 255, 0.09)",
+  text: "#ffffff",
+  muted: "rgba(255, 255, 255, 0.58)",
+  soft: "rgba(255, 255, 255, 0.36)",
+  teal: "#a855f7",
+  amber: "#ec4899",
+  coral: "#7c3aed",
 };
 
 const SAMPLE_PROFILES = [
   {
     name: "Sofia K.",
     username: "sofiadesigns",
-    color: BRAND.teal,
-    bg: "linear-gradient(145deg, #16352e 0%, #0d1715 100%)",
+    color: "#a855f7",
+    bg: "linear-gradient(145deg, #1a0533 0%, #0d0221 100%)",
     initials: "SK",
     bio: "UX designer building calm digital products",
     links: ["Portfolio", "Dribbble", "Instagram", "Booking"],
@@ -34,8 +34,8 @@ const SAMPLE_PROFILES = [
   {
     name: "Marcus J.",
     username: "marcustech",
-    color: BRAND.amber,
-    bg: "linear-gradient(145deg, #392d14 0%, #101714 100%)",
+    color: "#0ea5e9",
+    bg: "linear-gradient(145deg, #0c1445 0%, #050d2e 100%)",
     initials: "MJ",
     bio: "Full stack dev, essays, products, talks",
     links: ["GitHub", "Newsletter", "LinkedIn", "Templates"],
@@ -43,8 +43,8 @@ const SAMPLE_PROFILES = [
   {
     name: "Aria Moon",
     username: "ariamoon",
-    color: BRAND.coral,
-    bg: "linear-gradient(145deg, #3a1c18 0%, #101312 100%)",
+    color: "#ec4899",
+    bg: "linear-gradient(145deg, #3d0030 0%, #1a0018 100%)",
     initials: "AM",
     bio: "Creator, drops, playlists, latest videos",
     links: ["YouTube", "Shop", "Playlist", "Community"],
@@ -125,7 +125,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
     >
       <nav
         className="sticky top-0 z-50 border-b backdrop-blur-xl"
-        style={{ background: "rgba(11,16,15,0.84)", borderColor: BRAND.border }}
+        style={{ background: "rgba(3,0,7,0.84)", borderColor: BRAND.border }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
@@ -175,8 +175,8 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
             className="mx-auto max-w-4xl text-center"
           >
             <span
-              className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5"
-              style={{ background: "rgba(37,208,178,0.1)", borderColor: "rgba(37,208,178,0.24)", color: "#a7f3d0", fontSize: "13px", fontWeight: 700 }}
+            className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5"
+              style={{ background: "rgba(168,85,247,0.12)", borderColor: "rgba(168,85,247,0.26)", color: "#d8b4fe", fontSize: "13px", fontWeight: 700 }}
             >
               <Star size={13} fill="currentColor" />
               A focused micro-site builder for creators
@@ -204,10 +204,10 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
                 className="inline-flex items-center justify-center gap-2 rounded-lg px-7 py-3.5 transition-transform hover:-translate-y-0.5"
                 style={{
                   background: `linear-gradient(135deg, ${BRAND.teal}, ${BRAND.amber})`,
-                  color: "#07100e",
+                  color: "#ffffff",
                   fontSize: "15px",
                   fontWeight: 900,
-                  boxShadow: "0 18px 42px rgba(37,208,178,0.16)",
+                  boxShadow: "0 18px 42px rgba(124,58,237,0.28)",
                 }}
               >
                 Create your page <ArrowRight size={17} />
@@ -324,7 +324,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
                 Feature
               </div>
               <div className="text-center">
-                <span className="rounded-full px-3 py-1" style={{ background: "rgba(37,208,178,0.15)", color: "#99f6e4", fontSize: "12px", fontWeight: 900 }}>
+                <span className="rounded-full px-3 py-1" style={{ background: "rgba(168,85,247,0.2)", color: "#d8b4fe", fontSize: "12px", fontWeight: 900 }}>
                   LinkFlow
                 </span>
               </div>
@@ -360,7 +360,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
             className="mt-8 inline-flex items-center gap-2 rounded-lg px-8 py-3.5 transition-transform hover:-translate-y-0.5"
             style={{
               background: `linear-gradient(135deg, ${BRAND.teal}, ${BRAND.amber})`,
-              color: "#07100e",
+              color: "#ffffff",
               fontSize: "15px",
               fontWeight: 900,
             }}
@@ -394,8 +394,8 @@ function BrandMark({ size }: { size: "sm" | "md" }) {
       className={`${box} flex items-center justify-center rounded-lg`}
       style={{
         background: `linear-gradient(135deg, ${BRAND.teal}, ${BRAND.amber})`,
-        color: "#07100e",
-        boxShadow: "0 10px 28px rgba(37,208,178,0.16)",
+        color: "#ffffff",
+        boxShadow: "0 10px 28px rgba(124,58,237,0.25)",
       }}
     >
       <Sparkles size={icon} />
@@ -405,7 +405,7 @@ function BrandMark({ size }: { size: "sm" | "md" }) {
 
 function CheckMark() {
   return (
-    <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(37,208,178,0.16)", color: BRAND.teal }}>
+    <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: BRAND.teal }}>
       <Check size={13} />
     </span>
   );

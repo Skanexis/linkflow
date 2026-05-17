@@ -70,7 +70,9 @@ DATA_DIR=/persistent/data/path
 CORS_ORIGIN=https://flowlinks.org
 ```
 
-## Demo Account
+## Local Demo Account
+
+Only non-production mode seeds a local demo account.
 
 ```text
 email: demo@linkflow.local
@@ -80,7 +82,7 @@ password: password
 ## Working Features
 
 - Public profile URLs at `/{username}`.
-- Register, login, demo social login, JWT session restore, and logout.
+- Register, login, real Google OAuth in production, JWT session restore, and logout.
 - Profile editing with username, display name, bio, avatar color, and initials.
 - Link CRUD, duplicate, reorder, platform detection, visibility, styles, hover effects, scheduling, and device targeting.
 - Theme customization with backgrounds, uploaded images, patterns, colors, typography, layout, and curated presets.

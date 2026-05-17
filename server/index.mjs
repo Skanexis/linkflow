@@ -2,6 +2,7 @@ import "dotenv/config";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
+import geoip from "geoip-lite";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { SignJWT, jwtVerify } from "jose";
@@ -23,20 +24,33 @@ const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-only-c
 const isProduction = process.env.NODE_ENV === "production";
 const appUrl = (process.env.APP_URL ?? `http://127.0.0.1:${port}`).replace(/\/+$/, "");
 const publicApiUrl = (process.env.API_PUBLIC_URL ?? appUrl).replace(/\/+$/, "");
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? "";
+const googleRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? `${publicApiUrl}/api/oauth/google/callback`).trim();
+const googleOAuthEnabled = process.env.GOOGLE_OAUTH_ENABLED === "true" || Boolean(googleClientId && googleClientSecret);
 const mailFromName = process.env.MAIL_FROM_NAME ?? "LinkFlow";
 const mailFrom = process.env.MAIL_FROM ?? process.env.SMTP_USER ?? "no-reply@linkflow.local";
 const verificationTokenTtlMs = Number(process.env.EMAIL_VERIFICATION_TTL_HOURS ?? 24) * 60 * 60 * 1000;
+const oauthStateTtlMs = 10 * 60 * 1000;
+
+if (isProduction && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev-only-change-this-secret-before-production")) {
+  throw new Error("JWT_SECRET must be changed before running in production.");
+}
+
+if (googleOAuthEnabled && (!googleClientId || !googleClientSecret)) {
+  throw new Error("Google OAuth is enabled, but GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing.");
+}
 
 const buttonStyles = ["rounded", "pill", "glass", "3d", "neon", "soft", "brutal", "underline"];
 const hoverEffects = ["glow", "bounce", "expand", "none", "tilt", "slide"];
 const widgetTypes = ["music", "countdown", "poll", "email", "video", "product", "map", "chat"];
 
 const defaultProfile = {
-  displayName: "Alex Rivera",
-  username: "alexrivera",
-  bio: "Designer & Developer | Building cool stuff | LA",
+  displayName: "New Creator",
+  username: "creator",
+  bio: "",
   avatarColor: "#7c3aed",
-  initials: "AR",
+  initials: "LC",
 };
 
 const defaultLinks = [
@@ -172,6 +186,44 @@ function initialsFromUsername(username) {
   return username.slice(0, 2).toUpperCase();
 }
 
+function initialsFromName(name, fallback) {
+  const parts = String(name || fallback || "LinkFlow")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return (parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : (parts[0] ?? "LC").slice(0, 2)).toUpperCase();
+}
+
+function slugFromValue(value, fallback = "creator") {
+  const slug = String(value || fallback)
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .replace(/[^a-z0-9_.-]+/g, "-")
+    .replace(/^[._-]+|[._-]+$/g, "")
+    .slice(0, 24);
+  return slug.length >= 3 ? slug : fallback;
+}
+
+function uniqueUsername(state, preferred) {
+  const base = slugFromValue(preferred);
+  let candidate = base;
+  let suffix = 1;
+  while (state.users.some((user) => user.username === candidate)) {
+    candidate = `${base.slice(0, Math.max(3, 29 - String(suffix).length))}${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+function profileForNewUser({ displayName, username }) {
+  return {
+    ...clone(defaultProfile),
+    displayName: displayName || username,
+    username,
+    initials: initialsFromName(displayName, username),
+  };
+}
+
 function detectPlatform(url) {
   const u = url.toLowerCase();
   if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
@@ -228,6 +280,32 @@ function cleanupVerificationTokensForUser(state, userId) {
   for (const [tokenHash, record] of Object.entries(state.emailVerificationTokens ?? {})) {
     if (record.userId === userId) delete state.emailVerificationTokens[tokenHash];
   }
+}
+
+function cleanupExpiredOAuthStates(state) {
+  const now = Date.now();
+  for (const [tokenHash, record] of Object.entries(state.oauthStates ?? {})) {
+    if (new Date(record.expiresAt).getTime() <= now) delete state.oauthStates[tokenHash];
+  }
+}
+
+function createOAuthStateRecord(state, provider) {
+  cleanupExpiredOAuthStates(state);
+  const token = randomBytes(32).toString("hex");
+  state.oauthStates[hashToken(token)] = {
+    provider,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + oauthStateTtlMs).toISOString(),
+  };
+  return token;
+}
+
+function consumeOAuthState(state, provider, token) {
+  cleanupExpiredOAuthStates(state);
+  const tokenHash = hashToken(token);
+  const record = state.oauthStates[tokenHash];
+  delete state.oauthStates[tokenHash];
+  return Boolean(record && record.provider === provider && new Date(record.expiresAt).getTime() > Date.now());
 }
 
 async function sendVerificationEmail({ email, username, verifyUrl }) {
@@ -289,22 +367,45 @@ function escapeHtml(value) {
 }
 
 async function initialState() {
+  if (isProduction) {
+    return {
+      users: [],
+      profiles: {},
+      links: {},
+      themes: {},
+      widgets: {},
+      analytics: {},
+      analyticsEvents: {},
+      emailVerificationTokens: {},
+      oauthStates: {},
+    };
+  }
+
   const demoUser = {
     id: "demo_user",
     email: "demo@linkflow.local",
-    username: "alexrivera",
+    username: "demo",
     passwordHash: await bcrypt.hash("password", 12),
     emailVerifiedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
+  const demoProfile = {
+    ...clone(defaultProfile),
+    displayName: "Demo Creator",
+    username: demoUser.username,
+    bio: "A local demo profile for development.",
+    initials: "DC",
+  };
   return {
     users: [demoUser],
-    profiles: { [demoUser.id]: clone(defaultProfile) },
+    profiles: { [demoUser.id]: demoProfile },
     links: { [demoUser.id]: clone(defaultLinks) },
     themes: { [demoUser.id]: clone(defaultTheme) },
     widgets: { [demoUser.id]: clone(defaultWidgets) },
     analytics: { [demoUser.id]: {} },
+    analyticsEvents: { [demoUser.id]: [] },
     emailVerificationTokens: {},
+    oauthStates: {},
   };
 }
 
@@ -320,7 +421,7 @@ async function readState() {
 }
 
 function normalizeState(state) {
-  return {
+  const normalized = {
     ...state,
     users: state.users ?? [],
     profiles: state.profiles ?? {},
@@ -328,8 +429,34 @@ function normalizeState(state) {
     themes: state.themes ?? {},
     widgets: state.widgets ?? {},
     analytics: state.analytics ?? {},
+    analyticsEvents: state.analyticsEvents ?? {},
     emailVerificationTokens: state.emailVerificationTokens ?? {},
+    oauthStates: state.oauthStates ?? {},
   };
+
+  if (isProduction && process.env.ALLOW_PRODUCTION_DEMO_USER !== "true") {
+    const fakeEmails = new Set(["demo@linkflow.local", "google@linkflow.local"]);
+    const fakeIds = new Set(
+      normalized.users
+        .filter((user) => user.id === "demo_user" || fakeEmails.has(user.email))
+        .map((user) => user.id)
+    );
+
+    if (fakeIds.size > 0) {
+      normalized.users = normalized.users.filter((user) => !fakeIds.has(user.id));
+      for (const id of fakeIds) {
+        delete normalized.profiles[id];
+        delete normalized.links[id];
+        delete normalized.themes[id];
+        delete normalized.widgets[id];
+        delete normalized.analytics[id];
+        delete normalized.analyticsEvents[id];
+        cleanupVerificationTokensForUser(normalized, id);
+      }
+    }
+  }
+
+  return normalized;
 }
 
 async function writeState(state) {
@@ -405,40 +532,129 @@ function parse(schema, value) {
 function analyticsFor(state, user) {
   const links = state.links[user.id] ?? [];
   const storedClicks = state.analytics[user.id] ?? {};
-  const totalTracked = Object.values(storedClicks).reduce((sum, value) => sum + Number(value), 0);
+  const events = state.analyticsEvents[user.id] ?? [];
+  const linkTitleById = new Map(links.map((link) => [link.id, link.title]));
+  const eventClicksByLink = events.reduce((acc, event) => {
+    acc[event.linkId] = (acc[event.linkId] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const dailyData = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
+    const key = dateKey(d);
     return {
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      clicks: Math.max(4, Math.round((totalTracked + links.length * 12) * (0.45 + i / 42))),
+      clicks: events.filter((event) => event.createdAt.slice(0, 10) === key).length,
     };
   });
+
+  const countryCounts = events.reduce((acc, event) => {
+    const country = event.country || "Unknown";
+    acc[country] = (acc[country] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return {
     dailyData,
     linkClickData: links
-      .filter((link) => link.visible)
-      .map((link, i) => ({
+      .map((link) => ({
         id: link.id,
-        name: link.title.length > 18 ? `${link.title.slice(0, 18)}...` : link.title,
-        clicks: (storedClicks[link.id] ?? 0) + (links.length - i) * 17,
+        name: linkTitleById.get(link.id)?.slice(0, 36) ?? "Untitled link",
+        clicks: (storedClicks[link.id] ?? 0) + (eventClicksByLink[link.id] ?? 0),
       }))
       .sort((a, b) => b.clicks - a.clicks),
-    deviceData: [
-      { name: "Mobile", value: 64, color: "#a855f7" },
-      { name: "Desktop", value: 28, color: "#3b82f6" },
-      { name: "Tablet", value: 8, color: "#ec4899" },
-    ],
-    geoData: [
-      { country: "United States", visits: 1240 },
-      { country: "United Kingdom", visits: 480 },
-      { country: "Germany", visits: 310 },
-      { country: "France", visits: 270 },
-      { country: "Brazil", visits: 220 },
-      { country: "Australia", visits: 190 },
-    ],
+    countryData: Object.entries(countryCounts)
+      .map(([country, visits]) => ({ country, visits }))
+      .sort((a, b) => b.visits - a.visits),
   };
+}
+
+function dateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function detectCountryFromRequest(req) {
+  const forwardedCountry = String(
+    req.headers["cf-ipcountry"] ??
+    req.headers["x-vercel-ip-country"] ??
+    req.headers["x-country-code"] ??
+    ""
+  ).trim();
+  if (forwardedCountry && forwardedCountry !== "XX") return forwardedCountry.toUpperCase();
+
+  const geoCountry = geoip.lookup(getClientIp(req))?.country;
+  if (geoCountry) return geoCountry;
+
+  const language = String(req.headers["accept-language"] ?? "");
+  const localeRegion = language.match(/(?:^|,)\s*[a-z]{2,3}-([A-Z]{2})/);
+  return localeRegion?.[1] ?? "Unknown";
+}
+
+function getClientIp(req) {
+  const candidates = [
+    req.headers["cf-connecting-ip"],
+    req.headers["true-client-ip"],
+    req.headers["x-real-ip"],
+    String(req.headers["x-forwarded-for"] ?? "").split(",")[0],
+    req.ip,
+    req.socket?.remoteAddress,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeIp(Array.isArray(candidate) ? candidate[0] : candidate);
+    if (normalized) return normalized;
+  }
+  return "";
+}
+
+function normalizeIp(value) {
+  const ip = String(value ?? "").trim();
+  if (!ip) return "";
+  if (ip.startsWith("::ffff:")) return ip.slice(7);
+  if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(ip)) return ip.replace(/:\d+$/, "");
+  return ip;
+}
+
+function redirectToAuthError(res, message) {
+  const url = new URL(appUrl);
+  url.searchParams.set("auth_error", message);
+  res.redirect(303, url.toString());
+}
+
+async function fetchGoogleUser(code) {
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: googleClientId,
+      client_secret: googleClientSecret,
+      redirect_uri: googleRedirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  const tokenPayload = await tokenResponse.json().catch(() => ({}));
+  if (!tokenResponse.ok || !tokenPayload.access_token) {
+    throw Object.assign(new Error("Google OAuth token exchange failed."), { status: 502 });
+  }
+
+  const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
+  });
+  const userPayload = await userResponse.json().catch(() => ({}));
+  if (!userResponse.ok) {
+    throw Object.assign(new Error("Google profile lookup failed."), { status: 502 });
+  }
+
+  return parse(z.object({
+    id: z.string().min(1),
+    email: z.string().trim().toLowerCase().email(),
+    verified_email: z.boolean().optional(),
+    name: z.string().optional(),
+    given_name: z.string().optional(),
+  }), userPayload);
 }
 
 const app = express();
@@ -475,11 +691,12 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
       };
       const verification = createEmailVerificationRecord(state, user.id);
       state.users.push(user);
-      state.profiles[user.id] = { ...clone(defaultProfile), displayName: input.username, username: input.username, initials: initialsFromUsername(input.username) };
+      state.profiles[user.id] = profileForNewUser({ displayName: input.username, username: input.username });
       state.links[user.id] = [];
       state.themes[user.id] = clone(defaultTheme);
       state.widgets[user.id] = [];
       state.analytics[user.id] = {};
+      state.analyticsEvents[user.id] = [];
       return { user: publicUser(user), verifyUrl: verification.verifyUrl };
     });
     try {
@@ -492,6 +709,7 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
         delete state.themes[created.user.id];
         delete state.widgets[created.user.id];
         delete state.analytics[created.user.id];
+        delete state.analyticsEvents[created.user.id];
         cleanupVerificationTokensForUser(state, created.user.id);
       });
       throw error;
@@ -561,8 +779,92 @@ app.get("/api/auth/verify-email", async (req, res, next) => {
   }
 });
 
+app.get("/api/auth/google/start", authLimiter, async (_req, res, next) => {
+  try {
+    if (!googleOAuthEnabled) {
+      throw Object.assign(new Error("Google OAuth is not configured."), { status: 503, expose: true });
+    }
+
+    const stateToken = await mutateState((state) => createOAuthStateRecord(state, "google"));
+    const googleUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    googleUrl.searchParams.set("client_id", googleClientId);
+    googleUrl.searchParams.set("redirect_uri", googleRedirectUri);
+    googleUrl.searchParams.set("response_type", "code");
+    googleUrl.searchParams.set("scope", "openid email profile");
+    googleUrl.searchParams.set("state", stateToken);
+    googleUrl.searchParams.set("prompt", "select_account");
+    res.redirect(302, googleUrl.toString());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/oauth/google/callback", authLimiter, async (req, res, next) => {
+  try {
+    if (!googleOAuthEnabled) {
+      return redirectToAuthError(res, "Google OAuth is not configured.");
+    }
+
+    const error = String(req.query.error ?? "");
+    if (error) return redirectToAuthError(res, "Google sign-in was cancelled.");
+
+    const code = String(req.query.code ?? "");
+    const stateToken = String(req.query.state ?? "");
+    if (!code || !stateToken) return redirectToAuthError(res, "Google sign-in response is incomplete.");
+
+    const validState = await mutateState((state) => consumeOAuthState(state, "google", stateToken));
+    if (!validState) return redirectToAuthError(res, "Google sign-in session expired. Try again.");
+
+    const googleUser = await fetchGoogleUser(code);
+    if (googleUser.verified_email === false) {
+      return redirectToAuthError(res, "Google account email is not verified.");
+    }
+
+    const payload = await mutateState(async (state) => {
+      let user = state.users.find((item) => item.oauthProviders?.google === googleUser.id);
+      if (!user) user = state.users.find((item) => item.email === googleUser.email);
+
+      if (user) {
+        user.oauthProviders = { ...(user.oauthProviders ?? {}), google: googleUser.id };
+        user.emailVerifiedAt = user.emailVerifiedAt ?? new Date().toISOString();
+      } else {
+        const displayName = googleUser.name || googleUser.given_name || googleUser.email.split("@")[0];
+        const username = uniqueUsername(state, googleUser.given_name || googleUser.email.split("@")[0]);
+        user = {
+          id: makeId("user"),
+          email: googleUser.email,
+          username,
+          passwordHash: await bcrypt.hash(makeId("oauth"), 12),
+          emailVerifiedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          oauthProviders: { google: googleUser.id },
+        };
+        state.users.push(user);
+        state.profiles[user.id] = profileForNewUser({ displayName, username });
+        state.links[user.id] = [];
+        state.themes[user.id] = clone(defaultTheme);
+        state.widgets[user.id] = [];
+        state.analytics[user.id] = {};
+        state.analyticsEvents[user.id] = [];
+      }
+
+      return { token: await signToken(user) };
+    });
+
+    const redirectUrl = new URL(appUrl);
+    redirectUrl.searchParams.set("auth_token", payload.token);
+    res.redirect(303, redirectUrl.toString());
+  } catch (error) {
+    console.error("Google OAuth callback failed:", error);
+    redirectToAuthError(res, "Google sign-in failed. Check OAuth settings and try again.");
+  }
+});
+
 app.post("/api/auth/social", authLimiter, async (req, res, next) => {
   try {
+    if (isProduction) {
+      throw Object.assign(new Error("Demo social login is disabled in production."), { status: 410, expose: true });
+    }
     const input = parse(z.object({ provider: z.enum(["google"]) }), req.body);
     const payload = await mutateState(async (state) => {
       const email = `${input.provider}@linkflow.local`;
@@ -582,6 +884,7 @@ app.post("/api/auth/social", authLimiter, async (req, res, next) => {
         state.themes[user.id] = clone(defaultTheme);
         state.widgets[user.id] = clone(defaultWidgets);
         state.analytics[user.id] = {};
+        state.analyticsEvents[user.id] = [];
       }
       return { token: await signToken(user), snapshot: snapshotForUser(state, user) };
     });
@@ -787,11 +1090,17 @@ app.post("/api/analytics/click", async (req, res, next) => {
   try {
     const { linkId } = parse(z.object({ linkId: z.string().min(1) }), req.body);
     await mutateState((state) => {
-      const ownerId = Object.entries(state.links).find(([, links]) => links.some((link) => link.id === linkId))?.[0] ?? state.users[0]?.id;
-      if (!ownerId) return;
-      const bucket = state.analytics[ownerId] ?? {};
-      bucket[linkId] = (bucket[linkId] ?? 0) + 1;
-      state.analytics[ownerId] = bucket;
+      const ownerId = Object.entries(state.links).find(([, links]) => links.some((link) => link.id === linkId))?.[0];
+      if (!ownerId) throw Object.assign(new Error("Link not found."), { status: 404 });
+      state.analytics[ownerId] = state.analytics[ownerId] ?? {};
+      const events = state.analyticsEvents[ownerId] ?? [];
+      events.push({
+        id: makeId("click"),
+        linkId,
+        createdAt: new Date().toISOString(),
+        country: detectCountryFromRequest(req),
+      });
+      state.analyticsEvents[ownerId] = events.slice(-5000);
     });
     res.json({ ok: true });
   } catch (error) {

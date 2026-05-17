@@ -103,6 +103,17 @@ A     www.flowlinks.org  203.0.113.10
 nslookup flowlinks.org
 ```
 
+### 2.1 География кликов через Cloudflare
+
+Самый быстрый бесплатный вариант для аналитики стран - держать домен за Cloudflare proxy и включить передачу страны посетителя:
+
+1. Cloudflare Dashboard -> свой домен.
+2. `Rules` -> `Transform Rules` -> `Managed Transforms`.
+3. Включи `Add visitor location headers`.
+4. Проверь, что DNS-записи `flowlinks.org` и `www` проксируются через Cloudflare, то есть оранжевое облако включено.
+
+После этого Cloudflare будет передавать backend header `CF-IPCountry`, и LinkFlow будет считать клики по странам без внешних API-запросов. Если Cloudflare header не пришел, backend использует локальную GeoIP-базу `geoip-lite` по IP из `CF-Connecting-IP`, `X-Real-IP` или `X-Forwarded-For`.
+
 Или уже на сервере:
 
 ```bash
@@ -376,6 +387,10 @@ DATA_DIR=/var/www/linkflow/shared/data
 CORS_ORIGIN=https://flowlinks.org,https://www.flowlinks.org
 JWT_SECRET=PASTE_LONG_RANDOM_SECRET_HERE
 VITE_API_BASE_URL=/api
+GOOGLE_OAUTH_ENABLED=true
+GOOGLE_CLIENT_ID=PASTE_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=PASTE_GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://flowlinks.org/api/oauth/google/callback
 ```
 
 Порт `8787` выбран специально, чтобы не конфликтовать с другим проектом на `8080`.
@@ -694,16 +709,7 @@ curl https://flowlinks.org/api/health
 https://flowlinks.org
 ```
 
-Demo-аккаунт:
-
-```text
-email: demo@linkflow.local
-password: password
-```
-
-После проверки лучше зарегистрировать нового пользователя.
-
-Важно: demo-аккаунт удобен для теста, но для публичного проекта не стоит оставлять известный пароль. Минимум поменяй данные через интерфейс или очисти production JSON после создания своего аккаунта.
+В `NODE_ENV=production` demo-аккаунт отключен. Если на сервере уже был старый JSON с `demo@linkflow.local` или `google@linkflow.local`, после обновления backend больше не будет отдавать эти mock-аккаунты.
 
 Данные лежат тут:
 
@@ -720,7 +726,7 @@ password: password
 - Регистрация работает.
 - Login работает.
 - Dashboard открывается.
-- Public profile открывается по `https://flowlinks.org/alexrivera`.
+- Public profile открывается по URL твоего реального username.
 - Создание ссылки работает.
 - Preview работает.
 - Виджеты работают.

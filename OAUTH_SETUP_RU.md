@@ -70,10 +70,10 @@ Frontend (React) -> Backend (Node.js) -> OAuth Provider
    ```
 6. **Authorized redirect URIs**:
    ```
-   http://127.0.0.1:3000/api/auth/oauth/google/callback
-   http://localhost:3000/api/auth/oauth/google/callback
-   https://flowlinks.org/api/auth/oauth/google/callback
-   https://www.flowlinks.org/api/auth/oauth/google/callback
+   http://127.0.0.1:8787/api/oauth/google/callback
+   http://localhost:8787/api/oauth/google/callback
+   https://flowlinks.org/api/oauth/google/callback
+   https://www.flowlinks.org/api/oauth/google/callback
    ```
 7. Create
 
@@ -82,6 +82,8 @@ Frontend (React) -> Backend (Node.js) -> OAuth Provider
 ```env
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxx
+GOOGLE_OAUTH_ENABLED=true
+GOOGLE_REDIRECT_URI=https://flowlinks.org/api/oauth/google/callback
 ```
 
 ### 1.6 Backend: установи google-auth-library
@@ -191,7 +193,7 @@ const userSchema = z.object({
 
 ```javascript
 // Google OAuth callback
-app.get("/api/auth/oauth/google/callback", async (req, res, next) => {
+app.get("/api/oauth/google/callback", async (req, res, next) => {
   try {
     const { code, state } = req.query;
     if (!code) throw Object.assign(new Error("Authorization code missing"), { status: 400 });
@@ -205,7 +207,7 @@ app.get("/api/auth/oauth/google/callback", async (req, res, next) => {
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
-        redirect_uri: `${publicApiUrl}/api/auth/oauth/google/callback`,
+        redirect_uri: `${publicApiUrl}/api/oauth/google/callback`,
       }),
     });
 
@@ -379,19 +381,11 @@ function parseAppleJwt(token) {
 
 ### 4.1 Обновить AuthPage.tsx
 
-Замени placeholder кнопки на реальный OAuth flow:
+Google OAuth запускается через backend, чтобы `client_secret` не попадал во frontend:
 
 ```typescript
-// Redirect to Google OAuth
 const handleGoogleAuth = () => {
-  const params = new URLSearchParams({
-    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    redirect_uri: `${window.location.origin}/api/auth/oauth/google/callback`,
-    response_type: "code",
-    scope: "openid email profile",
-    access_type: "offline",
-  });
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  window.location.href = "/api/auth/google/start";
 };
 
 // Redirect to Apple OAuth
@@ -411,13 +405,19 @@ const handleAppleAuth = () => {
 
 **`.env.development`:**
 ```env
-VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_OAUTH_ENABLED=true
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxx
+GOOGLE_REDIRECT_URI=http://127.0.0.1:8787/api/oauth/google/callback
 VITE_APPLE_SERVICE_ID=org.linkflow.web.service
 ```
 
 **`.env.production`:**
 ```env
-VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_OAUTH_ENABLED=true
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxx
+GOOGLE_REDIRECT_URI=https://flowlinks.org/api/oauth/google/callback
 VITE_APPLE_SERVICE_ID=org.linkflow.web.service
 ```
 

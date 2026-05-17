@@ -30,8 +30,14 @@ export interface PublicProfileSnapshot {
 export interface AnalyticsSummary {
   dailyData: { date: string; clicks: number }[];
   linkClickData: { id: string; name: string; clicks: number }[];
-  deviceData: { name: string; value: number; color: string }[];
-  geoData: { country: string; visits: number }[];
+  countryData: { country: string; visits: number }[];
+}
+
+interface AnalyticsEvent {
+  id: string;
+  linkId: string;
+  createdAt: string;
+  country: string;
 }
 
 interface StoredUser extends AuthUser {
@@ -47,19 +53,21 @@ interface StoredState {
   themes: Record<string, ProfileTheme>;
   widgets: Record<string, WidgetItem[]>;
   analytics: Record<string, Record<string, number>>;
+  analyticsEvents?: Record<string, AnalyticsEvent[]>;
   emailVerificationTokens?: Record<string, { userId: string; expiresAt: string; createdAt: string }>;
 }
 
 const STORAGE_KEY = "linkflow.backend.v1";
 const API_TOKEN_KEY = "linkflow.api.token";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.PROD ? "/api" : "");
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
+const API_BASE_URL = configuredApiBaseUrl || (import.meta.env.PROD ? "/api" : "");
 
 const defaultProfile: UserProfile = {
-  displayName: "Alex Rivera",
-  username: "alexrivera",
-  bio: "Designer & Developer | Building cool stuff | LA",
+  displayName: "New Creator",
+  username: "creator",
+  bio: "",
   avatarColor: "#7c3aed",
-  initials: "AR",
+  initials: "LC",
 };
 
 const defaultLinks: LinkItem[] = [
@@ -169,6 +177,7 @@ function initialState(): StoredState {
     themes: { [demoUser.id]: clone(defaultTheme) },
     widgets: { [demoUser.id]: clone(defaultWidgets) },
     analytics: { [demoUser.id]: {} },
+    analyticsEvents: { [demoUser.id]: [] },
     emailVerificationTokens: {},
   };
 }
@@ -186,6 +195,12 @@ function readState(): StoredState {
 
 function writeState(state: StoredState) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getAnalyticsEvents(state: StoredState, userId: string) {
+  state.analyticsEvents ??= {};
+  state.analyticsEvents[userId] ??= [];
+  return state.analyticsEvents[userId];
 }
 
 function getEmailVerificationTokens(state: StoredState) {
@@ -228,6 +243,15 @@ function publicSnapshotForUser(state: StoredState, user: AuthUser): PublicProfil
 
 function initialsFromUsername(username: string) {
   return username.slice(0, 2).toUpperCase();
+}
+
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function detectCountry() {
+  const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+  return locale.match(/-([A-Z]{2})$/)?.[1] ?? "Unknown";
 }
 
 function assertUrl(value: string, field = "URL", protocols = ["http:", "https:", "mailto:", "tel:", "sgnl:", "threema:", "potato:", "viber:", "luffa:"]) {
@@ -323,6 +347,7 @@ export async function register(input: { email: string; password: string; usernam
   state.themes[user.id] = clone(defaultTheme);
   state.widgets[user.id] = [];
   state.analytics[user.id] = {};
+  getAnalyticsEvents(state, user.id);
   state.currentUserId = null;
   const token = makeVerificationToken();
   getEmailVerificationTokens(state)[token] = {
@@ -350,7 +375,12 @@ export async function login(input: { email: string; password: string }) {
 
 export async function socialLogin(provider: "google") {
   if (hasApiBackend()) {
-    return apiAuth("/auth/social", { provider });
+    window.location.assign(`${API_BASE_URL}/auth/${provider}/start`);
+    return new Promise<AppSnapshot>(() => undefined);
+  }
+
+  if (import.meta.env.PROD) {
+    throw new Error("Google OAuth requires the production API.");
   }
 
   const state = readState();
@@ -365,11 +395,24 @@ export async function socialLogin(provider: "google") {
     state.themes[user.id] = clone(defaultTheme);
     state.widgets[user.id] = clone(defaultWidgets);
     state.analytics[user.id] = {};
+    getAnalyticsEvents(state, user.id);
   }
 
   state.currentUserId = user.id;
   writeState(state);
   return delay(snapshotForUser(state, user));
+}
+
+export async function completeOAuthLogin(token: string) {
+  if (!hasApiBackend()) throw new Error("OAuth requires the API backend.");
+  setToken(token);
+  try {
+    const payload = await apiRequest<{ snapshot: AppSnapshot }>("/auth/session");
+    return payload.snapshot;
+  } catch (error) {
+    setToken(null);
+    throw error;
+  }
 }
 
 export async function resendVerificationEmail(email: string) {
@@ -606,10 +649,17 @@ export async function trackClick(linkId: string) {
   }
 
   const state = readState();
-  const user = state.users.find((u) => u.id === state.currentUserId) ?? state.users[0];
-  const bucket = state.analytics[user.id] ?? {};
-  bucket[linkId] = (bucket[linkId] ?? 0) + 1;
-  state.analytics[user.id] = bucket;
+  const ownerId = Object.entries(state.links).find(([, links]) => links.some((link) => link.id === linkId))?.[0];
+  if (!ownerId) throw new Error("Link not found.");
+  state.analytics[ownerId] ??= {};
+  const events = getAnalyticsEvents(state, ownerId);
+  events.push({
+    id: id("click"),
+    linkId,
+    createdAt: new Date().toISOString(),
+    country: detectCountry(),
+  });
+  state.analyticsEvents![ownerId] = events.slice(-5000);
   writeState(state);
   return delay(true, 30);
 }
@@ -673,41 +723,41 @@ export async function getAnalytics(): Promise<AnalyticsSummary> {
   const user = requireCurrentUser(state);
   const links = state.links[user.id] ?? [];
   const storedClicks = state.analytics[user.id] ?? {};
-  const totalTracked = Object.values(storedClicks).reduce((sum, value) => sum + value, 0);
+  const events = getAnalyticsEvents(state, user.id);
+  const eventClicksByLink = events.reduce<Record<string, number>>((acc, event) => {
+    acc[event.linkId] = (acc[event.linkId] ?? 0) + 1;
+    return acc;
+  }, {});
 
   const dailyData = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
+    const key = dateKey(d);
     return {
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      clicks: Math.max(4, Math.round((totalTracked + links.length * 12) * (0.45 + i / 42))),
+      clicks: events.filter((event) => event.createdAt.slice(0, 10) === key).length,
     };
   });
 
   const linkClickData = links
-    .filter((link) => link.visible)
-    .map((link, i) => ({
+    .map((link) => ({
       id: link.id,
-      name: link.title.length > 18 ? `${link.title.slice(0, 18)}...` : link.title,
-      clicks: (storedClicks[link.id] ?? 0) + (links.length - i) * 17,
+      name: link.title.length > 36 ? `${link.title.slice(0, 36)}...` : link.title,
+      clicks: (storedClicks[link.id] ?? 0) + (eventClicksByLink[link.id] ?? 0),
     }))
     .sort((a, b) => b.clicks - a.clicks);
+
+  const countryCounts = events.reduce<Record<string, number>>((acc, event) => {
+    const country = event.country || "Unknown";
+    acc[country] = (acc[country] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return delay({
     dailyData,
     linkClickData,
-    deviceData: [
-      { name: "Mobile", value: 64, color: "#a855f7" },
-      { name: "Desktop", value: 28, color: "#3b82f6" },
-      { name: "Tablet", value: 8, color: "#ec4899" },
-    ],
-    geoData: [
-      { country: "United States", visits: 1240 },
-      { country: "United Kingdom", visits: 480 },
-      { country: "Germany", visits: 310 },
-      { country: "France", visits: 270 },
-      { country: "Brazil", visits: 220 },
-      { country: "Australia", visits: 190 },
-    ],
+    countryData: Object.entries(countryCounts)
+      .map(([country, visits]) => ({ country, visits }))
+      .sort((a, b) => b.visits - a.visits),
   });
 }
