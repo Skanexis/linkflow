@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "api": "node server/index.mjs",
+    "admin": "node server/admin-tool.mjs",
     "build": "vite build",
     "dev": "vite",
     "dev:api": "node server/index.mjs",

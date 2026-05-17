@@ -991,6 +991,34 @@ DATA_DIR=/var/www/linkflow/shared/data
 /var/www/linkflow/shared/data/linkflow.json
 ```
 
+### После добавления админа пишет `Invalid email or password`
+
+`ADMIN_EMAILS` не меняет пароль. Эта ошибка обычно означает, что сервер смотрит не в тот `DATA_DIR`, аккаунта нет в текущем `linkflow.json`, или пароль нужно сбросить.
+
+Проверь env и базу:
+
+```bash
+sudo grep -E '^(DATA_DIR|ADMIN_EMAILS)=' /var/www/linkflow/shared/.env
+sudo ls -la /var/www/linkflow/shared/data/linkflow.json
+```
+
+Посмотри, видит ли сервер твой аккаунт:
+
+```bash
+cd /var/www/linkflow/current
+sudo -u linkflow bash -lc 'set -a; source /var/www/linkflow/shared/.env; set +a; pnpm admin inspect your@email.com'
+```
+
+Если аккаунт найден, но пароль не подходит, сбрось пароль и сразу подтверди email:
+
+```bash
+cd /var/www/linkflow/current
+sudo -u linkflow bash -lc 'set -a; source /var/www/linkflow/shared/.env; set +a; pnpm admin reset-password your@email.com NewStrongPassword123'
+sudo systemctl restart linkflow
+```
+
+После этого зайди с `your@email.com` и новым паролем. Если `inspect` пишет `User not found`, значит `DATA_DIR` указывает не на ту папку данных.
+
 ### API не работает с домена
 
 Проверь `CORS_ORIGIN`:
