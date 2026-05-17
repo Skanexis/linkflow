@@ -61,8 +61,8 @@ export interface ProfileTheme {
 const defaultProfile: UserProfile = {
   displayName: "Alex Rivera",
   username: "alexrivera",
-  bio: "Designer & Developer 🎨 | Building cool stuff | LA 🌴",
-  avatarColor: "#7c3aed",
+  bio: "Designer and developer building useful digital products.",
+  avatarColor: "#25d0b2",
   initials: "AR",
 };
 
@@ -77,21 +77,19 @@ const defaultLinks: LinkItem[] = [
 
 const defaultTheme: ProfileTheme = {
   backgroundType: 'gradient',
-  bgColor1: '#0f0c29',
-  bgColor2: '#302b63',
+  bgColor1: '#0b100f',
+  bgColor2: '#16352e',
   buttonStyle: 'pill',
   hoverEffect: 'glow',
   layoutMode: 'vertical',
   fontFamily: 'Inter',
-  primaryColor: '#a855f7',
-  textColor: '#ffffff',
+  primaryColor: '#25d0b2',
+  textColor: '#f6f2e8',
   backgroundPattern: 'grid',
   backgroundOverlay: 45,
   profileStyle: 'halo',
   widgetStyle: 'glass',
   contentWidth: 'comfortable',
-  animationPack: 'smooth',
-  iconStyle: 'brand',
 };
 
 const defaultWidgets: WidgetItem[] = [
@@ -104,7 +102,7 @@ const defaultWidgets: WidgetItem[] = [
 
 function AppLoading() {
   return (
-    <div className="min-h-full flex items-center justify-center bg-[#030007] text-white/60" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div className="min-h-dvh flex items-center justify-center bg-[#0b100f] text-white/60" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       Loading LinkFlow...
     </div>
   );
@@ -212,7 +210,7 @@ export default function App() {
   }, []);
 
   const handleSocialAuth = useCallback(
-    async (provider: "google" | "apple") => {
+    async (provider: "google") => {
       const snapshot = await backend.socialLogin(provider);
       applySnapshot(snapshot);
       setView("dashboard");
@@ -280,8 +278,13 @@ export default function App() {
     setView("landing");
   }, []);
 
+  const shellClassName =
+    view === "dashboard"
+      ? "h-dvh overflow-hidden bg-[#0b100f]"
+      : "min-h-dvh overflow-x-hidden bg-[#0b100f]";
+
   return (
-    <div className="size-full overflow-hidden">
+    <div className={shellClassName}>
       {appError && (
         <div className="fixed top-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border px-4 py-3 text-white shadow-lg"
           style={{ background: "rgba(127,29,29,0.95)", borderColor: "rgba(248,113,113,0.45)", fontSize: "13px" }}

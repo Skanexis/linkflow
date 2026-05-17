@@ -25,16 +25,14 @@ import {
   Code2,
   Gamepad2,
   Mail,
-  MessageCircle,
   MessageSquare,
   Music,
   PenLine,
   Phone,
-  ShieldCheck,
-  Send,
   ShoppingBag,
 } from "lucide-react";
 import type { LinkItem } from "../App";
+import { LuffaIcon, SignalIcon, TelegramIcon, ThreemaIcon, ViberIcon, WhatsAppIcon } from "./brandIcons";
 
 const PLATFORM_ICONS: Record<string, { icon: React.ComponentType<any>; color: string; label: string }> = {
   youtube: { icon: Youtube, color: "#FF0000", label: "YouTube" },
@@ -49,11 +47,13 @@ const PLATFORM_ICONS: Record<string, { icon: React.ComponentType<any>; color: st
   soundcloud: { icon: Music, color: "#ff5500", label: "SoundCloud" },
   twitch: { icon: Tv, color: "#9146FF", label: "Twitch" },
   discord: { icon: Gamepad2, color: "#5865F2", label: "Discord" },
-  telegram: { icon: Send, color: "#2AABEE", label: "Telegram" },
-  signal: { icon: ShieldCheck, color: "#3A76F0", label: "Signal" },
-  threema: { icon: ShieldCheck, color: "#22c55e", label: "Threema" },
+  telegram: { icon: TelegramIcon, color: "#2AABEE", label: "Telegram" },
+  signal: { icon: SignalIcon, color: "#3A76F0", label: "Signal" },
+  threema: { icon: ThreemaIcon, color: "#22c55e", label: "Threema" },
+  luffa: { icon: LuffaIcon, color: "#7c5cff", label: "Luffa" },
+  viber: { icon: ViberIcon, color: "#7360F2", label: "Viber" },
   potato: { icon: MessageSquare, color: "#f59e0b", label: "Potato" },
-  whatsapp: { icon: MessageCircle, color: "#25D366", label: "WhatsApp" },
+  whatsapp: { icon: WhatsAppIcon, color: "#25D366", label: "WhatsApp" },
   writing: { icon: PenLine, color: "#f8fafc", label: "Blog / Writing" },
   design: { icon: Camera, color: "#ea4c89", label: "Design Portfolio" },
   figma: { icon: PenLine, color: "#a78bfa", label: "Figma" },
@@ -85,6 +85,8 @@ function detectPlatform(url: string): string {
   if (u.includes("telegram.me") || u.includes("t.me") || u.includes("telegram.dog")) return "telegram";
   if (u.includes("signal.me") || u.includes("signal.group") || u.startsWith("sgnl://")) return "signal";
   if (u.includes("threema.id") || u.includes("threema.ch") || u.startsWith("threema://")) return "threema";
+  if (u.includes("luffa.im") || u.startsWith("luffa://")) return "luffa";
+  if (u.includes("viber.com") || u.includes("vb.me") || u.startsWith("viber://")) return "viber";
   if (u.includes("potato.im") || u.includes("pt.im") || u.startsWith("potato://")) return "potato";
   if (u.includes("wa.me") || u.includes("whatsapp.com")) return "whatsapp";
   if (u.includes("medium.com") || u.includes("substack.com")) return "writing";
@@ -111,6 +113,8 @@ const QUICK_LINKS = [
   { label: "Telegram", url: "https://t.me/yourname" },
   { label: "Signal", url: "https://signal.me/#eu/your-id" },
   { label: "Threema", url: "https://threema.id/YOURID" },
+  { label: "Viber", url: "viber://chat?number=%2B15551234567" },
+  { label: "Luffa", url: "https://luffa.im/yourname" },
   { label: "Portfolio", url: "https://yourname.com" },
 ];
 
@@ -125,25 +129,38 @@ interface LinksManagerProps {
 interface AddLinkForm {
   title: string;
   url: string;
+  platform: string;
+  buttonStyle: LinkItem["buttonStyle"];
+  hoverEffect: LinkItem["hoverEffect"];
 }
+
+const createEmptyForm = (): AddLinkForm => ({
+  title: "",
+  url: "",
+  platform: "generic",
+  buttonStyle: "pill",
+  hoverEffect: "glow",
+});
 
 export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: LinksManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [form, setForm] = useState<AddLinkForm>({ title: "", url: "" });
+  const [form, setForm] = useState<AddLinkForm>(() => createEmptyForm());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [errors, setErrors] = useState<Partial<AddLinkForm>>({});
 
   const detectedPlatform = detectPlatform(form.url);
+  const selectedPlatform = form.platform || detectedPlatform;
+  const selectedPlatformConfig = PLATFORM_ICONS[selectedPlatform] ?? PLATFORM_ICONS.generic;
 
   const validateForm = () => {
     const errs: Partial<AddLinkForm> = {};
     if (!form.title.trim()) errs.title = "Title is required";
     if (!form.url.trim()) {
       errs.url = "URL is required";
-    } else if (!/^(https?:\/\/|mailto:|tel:).+/.test(form.url)) {
-      errs.url = "Enter a valid URL, mailto:, or tel:";
+    } else if (!/^(https?:\/\/|mailto:|tel:|sgnl:\/\/|threema:\/\/|potato:\/\/|viber:\/\/|luffa:\/\/).+/.test(form.url)) {
+      errs.url = "Enter a valid URL, mailto:, tel:, or supported app link";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -155,22 +172,22 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
       title: form.title.trim(),
       url: form.url.trim(),
       visible: true,
-      platform: detectedPlatform,
-      buttonStyle: "pill",
-      hoverEffect: "glow",
+      platform: selectedPlatform,
+      buttonStyle: form.buttonStyle,
+      hoverEffect: form.hoverEffect,
       deviceTarget: "all",
     });
-    setForm({ title: "", url: "" });
+    setForm(createEmptyForm());
     setShowAddForm(false);
     setErrors({});
   };
 
   const handleUrlChange = (url: string) => {
-    setForm((f) => ({ ...f, url }));
     const platform = detectPlatform(url);
+    setForm((f) => ({ ...f, url, platform }));
     if (!form.title && platform !== "generic" && platform !== "website") {
       const cfg = PLATFORM_ICONS[platform];
-      if (cfg) setForm((f) => ({ ...f, url, title: cfg.label }));
+      if (cfg) setForm((f) => ({ ...f, url, platform, title: cfg.label }));
     }
   };
 
@@ -268,10 +285,8 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
               {form.url && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {(() => {
-                    const cfg = PLATFORM_ICONS[detectedPlatform];
-                    if (!cfg) return null;
-                    const Icon = cfg.icon;
-                    return <Icon size={15} style={{ color: cfg.color }} />;
+                    const Icon = selectedPlatformConfig.icon;
+                    return <Icon size={20} style={{ color: selectedPlatformConfig.color }} />;
                   })()}
                 </div>
               )}
@@ -305,6 +320,85 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
             {errors.title && <p className="text-red-400 mt-1" style={{ fontSize: "11px" }}>{errors.title}</p>}
           </div>
 
+          <div>
+            <label style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", display: "block", marginBottom: "6px" }}>
+              Icon
+            </label>
+            <div className="grid grid-cols-5 sm:grid-cols-8 gap-1.5">
+              {Object.entries(PLATFORM_ICONS).filter(([key]) => key !== "generic").map(([platform, iconCfg]) => {
+                const PlatformIcon = iconCfg.icon;
+                return (
+                  <button
+                    key={platform}
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, platform }))}
+                    className="flex items-center justify-center rounded-lg py-2.5 transition-all"
+                    title={iconCfg.label}
+                    style={{
+                      background: selectedPlatform === platform ? `${iconCfg.color}22` : "rgba(255,255,255,0.05)",
+                      border: selectedPlatform === platform ? `1px solid ${iconCfg.color}66` : "1px solid transparent",
+                      color: iconCfg.color,
+                    }}
+                  >
+                    <PlatformIcon size={19} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <label style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", display: "block", marginBottom: "6px" }}>
+                Button Style
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {BUTTON_STYLES.map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, buttonStyle: style }))}
+                    className="py-1.5 rounded-lg text-center transition-all capitalize"
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      background: form.buttonStyle === style ? "rgba(168, 85, 247, 0.25)" : "rgba(255,255,255,0.05)",
+                      color: form.buttonStyle === style ? "#c084fc" : "rgba(255,255,255,0.4)",
+                      border: form.buttonStyle === style ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid transparent",
+                    }}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", display: "block", marginBottom: "6px" }}>
+                Button Animation
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {HOVER_EFFECTS.map((effect) => (
+                  <button
+                    key={effect}
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, hoverEffect: effect }))}
+                    className="py-1.5 rounded-lg text-center transition-all capitalize"
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      background: form.hoverEffect === effect ? "rgba(168, 85, 247, 0.25)" : "rgba(255,255,255,0.05)",
+                      color: form.hoverEffect === effect ? "#c084fc" : "rgba(255,255,255,0.4)",
+                      border: form.hoverEffect === effect ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid transparent",
+                    }}
+                  >
+                    {effect}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <button
               onClick={handleAdd}
@@ -318,7 +412,7 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
               Add Link
             </button>
             <button
-              onClick={() => { setShowAddForm(false); setForm({ title: "", url: "" }); setErrors({}); }}
+              onClick={() => { setShowAddForm(false); setForm(createEmptyForm()); setErrors({}); }}
               className="px-4 py-2.5 rounded-xl transition-all"
               style={{
                 background: "rgba(255,255,255,0.06)",
@@ -374,9 +468,9 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
                 {/* Platform icon */}
                 <div
                   className="rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ width: "32px", height: "32px", background: `${cfg.color}18` }}
+                  style={{ width: "38px", height: "38px", background: `${cfg.color}18` }}
                 >
-                  <Icon size={14} style={{ color: cfg.color }} />
+                  <Icon size={20} style={{ color: cfg.color }} />
                 </div>
 
                 {/* Title + URL */}
@@ -498,7 +592,7 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
 
                   <div>
                     <label style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", display: "block", marginBottom: "6px" }}>
-                      Icon / Platform
+                      Icon
                     </label>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                       {Object.entries(PLATFORM_ICONS).filter(([key]) => key !== "generic").map(([platform, iconCfg]) => {
@@ -507,7 +601,7 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
                           <button
                             key={platform}
                             onClick={() => onUpdate(link.id, { platform })}
-                            className="flex items-center justify-center rounded-lg py-2 transition-all"
+                            className="flex items-center justify-center rounded-lg py-2.5 transition-all"
                             title={iconCfg.label}
                             style={{
                               background: link.platform === platform ? `${iconCfg.color}22` : "rgba(255,255,255,0.05)",
@@ -515,7 +609,7 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
                               color: iconCfg.color,
                             }}
                           >
-                            <PlatformIcon size={14} />
+                            <PlatformIcon size={19} />
                           </button>
                         );
                       })}
@@ -549,7 +643,7 @@ export function LinksManager({ links, onAdd, onUpdate, onRemove, onReorder }: Li
 
                     <div>
                       <label style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", display: "block", marginBottom: "5px" }}>
-                        Hover Effect
+                        Button Animation
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {HOVER_EFFECTS.map((effect) => (

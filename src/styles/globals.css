@@ -143,14 +143,12 @@
 @supports (height: 100svh) {
   .profile-app-shell[data-preview="false"] {
     min-height: 100svh;
-    height: 100svh;
   }
 }
 
 @supports (height: 100dvh) {
   .profile-app-shell[data-preview="false"] {
     min-height: 100dvh;
-    height: 100dvh;
   }
 }
 

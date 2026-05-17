@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Eye, EyeOff, ArrowLeft, Chrome, Apple } from "lucide-react";
+import { Sparkles, Eye, EyeOff, ArrowLeft, Chrome } from "lucide-react";
+
+const AUTH_THEME = {
+  bg: "#0b100f",
+  panel: "rgba(246, 242, 232, 0.065)",
+  panelStrong: "rgba(246, 242, 232, 0.1)",
+  border: "rgba(246, 242, 232, 0.12)",
+  text: "#f6f2e8",
+  muted: "rgba(246, 242, 232, 0.58)",
+  soft: "rgba(246, 242, 232, 0.34)",
+  teal: "#25d0b2",
+  amber: "#f5b84b",
+  coral: "#ff7a59",
+};
 
 interface AuthPageProps {
   mode: "login" | "register";
@@ -10,7 +23,7 @@ interface AuthPageProps {
   pendingVerificationEmail?: string | null;
   onAuth: (input: { mode: "login" | "register"; email: string; password: string; username?: string }) => Promise<void>;
   onResendVerification: (email: string) => Promise<void>;
-  onSocialAuth: (provider: "google" | "apple") => Promise<void>;
+  onSocialAuth: (provider: "google") => Promise<void>;
   onBack: () => void;
 }
 
@@ -71,19 +84,43 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
 
   return (
     <div
-      className="min-h-full flex items-center justify-center bg-[#030007] px-4 py-16 relative overflow-hidden"
-      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+      className="relative flex min-h-dvh items-start justify-center overflow-x-hidden px-3 py-6 sm:px-4 sm:py-10 md:items-center md:py-16"
+      style={{
+        background: AUTH_THEME.bg,
+        backgroundImage:
+          "linear-gradient(rgba(246,242,232,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(246,242,232,0.04) 1px, transparent 1px)",
+        backgroundSize: "42px 42px",
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}
     >
-      {/* Bg blobs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute top-1/4 left-1/3 w-[500px] h-[500px] rounded-full opacity-15"
-          style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] rounded-full opacity-12"
-          style={{ background: "radial-gradient(circle, #ec4899 0%, transparent 70%)" }}
-        />
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(125deg, rgba(37,208,178,0.12), transparent 34%), linear-gradient(235deg, rgba(245,184,75,0.1), transparent 36%)",
+        }}
+      />
+      <div
+        className="fixed inset-x-0 bottom-0 h-40 pointer-events-none"
+        style={{ background: "linear-gradient(to top, rgba(11,16,15,0.94), transparent)" }}
+      />
+
+      <div className="pointer-events-none fixed left-1/2 top-8 hidden w-[min(760px,calc(100vw-32px))] -translate-x-1/2 grid-cols-3 gap-3 md:grid">
+        {["Design", "Links", "Analytics"].map((label, index) => (
+          <div
+            key={label}
+            className="rounded-lg border px-4 py-3"
+            style={{
+              background: "rgba(246,242,232,0.045)",
+              borderColor: "rgba(246,242,232,0.08)",
+              color: index === 0 ? AUTH_THEME.teal : index === 1 ? AUTH_THEME.amber : AUTH_THEME.coral,
+              fontSize: "12px",
+              fontWeight: 800,
+            }}
+          >
+            {label}
+          </div>
+        ))}
       </div>
 
       <motion.div
@@ -94,50 +131,53 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
       >
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-white/40 hover:text-white mb-8 transition-colors"
-          style={{ fontSize: "14px" }}
+          className="mb-5 flex items-center gap-2 transition-colors sm:mb-8"
+          style={{ color: AUTH_THEME.muted, fontSize: "14px" }}
         >
           <ArrowLeft size={15} /> Back to home
         </button>
 
         <div
-          className="rounded-3xl p-8 border border-white/8"
-          style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(24px)" }}
+          className="rounded-lg border p-5 shadow-2xl sm:p-8"
+          style={{ background: AUTH_THEME.panel, borderColor: AUTH_THEME.border, backdropFilter: "blur(24px)", boxShadow: "0 24px 70px rgba(0,0,0,0.32)" }}
         >
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center">
-              <Sparkles size={15} className="text-white" />
+          <div className="mb-6 flex items-center gap-2 sm:mb-8">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ background: `linear-gradient(135deg, ${AUTH_THEME.teal}, ${AUTH_THEME.amber})`, color: "#07100e" }}
+            >
+              <Sparkles size={15} />
             </div>
-            <span className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>
+            <span style={{ color: AUTH_THEME.text, fontWeight: 800, fontSize: "18px" }}>
               LinkFlow
             </span>
           </div>
 
-          <h1 className="text-white mb-1" style={{ fontSize: "24px", fontWeight: 700 }}>
+          <h1 className="mb-1" style={{ color: AUTH_THEME.text, fontSize: "24px", fontWeight: 900 }}>
             {mode === "register" ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="text-white/40 mb-8" style={{ fontSize: "14px" }}>
+          <p className="mb-6 sm:mb-8" style={{ color: AUTH_THEME.muted, fontSize: "14px" }}>
             {mode === "register"
-              ? "Your micro-site is 2 minutes away"
+              ? "Your micro-site is a few focused steps away"
               : "Sign in to manage your page"}
           </p>
 
           {/* Tab toggle */}
           <div
-            className="flex gap-1 mb-7 rounded-xl p-1"
-            style={{ background: "rgba(255,255,255,0.06)" }}
+            className="mb-5 flex gap-1 rounded-xl p-1 sm:mb-7"
+            style={{ background: "rgba(246,242,232,0.07)" }}
           >
             {(["register", "login"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => onModeChange(m)}
-                className="flex-1 py-2 rounded-lg transition-all"
+                className="flex-1 rounded-lg py-2 transition-all"
                 style={{
                   fontSize: "14px",
-                  fontWeight: 500,
-                  background: mode === m ? "white" : "transparent",
-                  color: mode === m ? "#000" : "rgba(255,255,255,0.5)",
+                  fontWeight: 800,
+                  background: mode === m ? AUTH_THEME.text : "transparent",
+                  color: mode === m ? "#101714" : AUTH_THEME.muted,
                 }}
               >
                 {m === "register" ? "Create account" : "Sign in"}
@@ -145,11 +185,11 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
             {error && (
               <div
-                className="rounded-xl px-4 py-3"
-                style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#fca5a5", fontSize: "13px" }}
+                className="rounded-lg px-4 py-3"
+                style={{ background: "rgba(255,122,89,0.12)", border: "1px solid rgba(255,122,89,0.35)", color: "#fecaca", fontSize: "13px" }}
               >
                 {error}
               </div>
@@ -157,8 +197,8 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
 
             {notice && (
               <div
-                className="rounded-xl px-4 py-3"
-                style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#bbf7d0", fontSize: "13px", lineHeight: 1.5 }}
+                className="rounded-lg px-4 py-3"
+                style={{ background: "rgba(37,208,178,0.12)", border: "1px solid rgba(37,208,178,0.34)", color: "#ccfbf1", fontSize: "13px", lineHeight: 1.5 }}
               >
                 <p>{notice}</p>
                 {mode === "login" && (
@@ -166,8 +206,8 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                     type="button"
                     onClick={handleResendVerification}
                     disabled={resending}
-                    className="mt-2 text-emerald-200 hover:text-white transition-colors"
-                    style={{ fontSize: "12px", fontWeight: 700, opacity: resending ? 0.65 : 1 }}
+                    className="mt-2 transition-colors"
+                    style={{ color: "#a7f3d0", fontSize: "12px", fontWeight: 800, opacity: resending ? 0.65 : 1 }}
                   >
                     {resending ? "Sending..." : "Resend verification email"}
                   </button>
@@ -177,26 +217,27 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
 
             {mode === "register" && (
               <div>
-                <label className="block text-white/60 mb-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
+                <label className="mb-1.5 block" style={{ color: AUTH_THEME.muted, fontSize: "13px", fontWeight: 800 }}>
                   Username
                 </label>
                 <input
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
                   placeholder="yourname"
-                  className="w-full rounded-xl px-4 py-3 text-white placeholder-white/20 outline-none transition-all"
+                  className="w-full rounded-lg px-4 py-3 outline-none transition-all"
                   style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: errors.username ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.1)",
+                    background: AUTH_THEME.panelStrong,
+                    border: errors.username ? `1px solid ${AUTH_THEME.coral}` : `1px solid ${AUTH_THEME.border}`,
+                    color: AUTH_THEME.text,
                     fontSize: "14px",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "#a855f7")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.username ? "#ef4444" : "rgba(255,255,255,0.1)")}
+                  onFocus={(e) => (e.target.style.borderColor = AUTH_THEME.teal)}
+                  onBlur={(e) => (e.target.style.borderColor = errors.username ? AUTH_THEME.coral : AUTH_THEME.border)}
                 />
                 {errors.username ? (
                   <p className="text-red-400 mt-1.5" style={{ fontSize: "12px" }}>{errors.username}</p>
                 ) : username.length >= 3 ? (
-                  <p className="text-white/30 mt-1.5" style={{ fontSize: "12px" }}>
+                  <p className="mt-1.5" style={{ color: AUTH_THEME.soft, fontSize: "12px" }}>
                     linkflow.io/{username}
                   </p>
                 ) : null}
@@ -204,7 +245,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
             )}
 
             <div>
-              <label className="block text-white/60 mb-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
+              <label className="mb-1.5 block" style={{ color: AUTH_THEME.muted, fontSize: "13px", fontWeight: 800 }}>
                 Email
               </label>
               <input
@@ -212,14 +253,15 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-xl px-4 py-3 text-white placeholder-white/20 outline-none transition-all"
+                className="w-full rounded-lg px-4 py-3 outline-none transition-all"
                 style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: errors.email ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.1)",
+                  background: AUTH_THEME.panelStrong,
+                  border: errors.email ? `1px solid ${AUTH_THEME.coral}` : `1px solid ${AUTH_THEME.border}`,
+                  color: AUTH_THEME.text,
                   fontSize: "14px",
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "#a855f7")}
-                onBlur={(e) => (e.target.style.borderColor = errors.email ? "#ef4444" : "rgba(255,255,255,0.1)")}
+                onFocus={(e) => (e.target.style.borderColor = AUTH_THEME.teal)}
+                onBlur={(e) => (e.target.style.borderColor = errors.email ? AUTH_THEME.coral : AUTH_THEME.border)}
               />
               {errors.email && (
                 <p className="text-red-400 mt-1.5" style={{ fontSize: "12px" }}>{errors.email}</p>
@@ -228,11 +270,11 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-white/60" style={{ fontSize: "13px", fontWeight: 500 }}>
+                <label style={{ color: AUTH_THEME.muted, fontSize: "13px", fontWeight: 800 }}>
                   Password
                 </label>
                 {mode === "login" && (
-                  <button type="button" className="text-violet-400 hover:text-violet-300 transition-colors" style={{ fontSize: "12px" }}>
+                  <button type="button" className="transition-colors" style={{ color: AUTH_THEME.teal, fontSize: "12px", fontWeight: 800 }}>
                     Forgot password?
                   </button>
                 )}
@@ -242,15 +284,16 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl px-4 py-3 pr-12 text-white placeholder-white/20 outline-none transition-all"
+                  placeholder="Password"
+                  className="w-full rounded-lg px-4 py-3 pr-12 outline-none transition-all"
                   style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: errors.password ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.1)",
+                    background: AUTH_THEME.panelStrong,
+                    border: errors.password ? `1px solid ${AUTH_THEME.coral}` : `1px solid ${AUTH_THEME.border}`,
+                    color: AUTH_THEME.text,
                     fontSize: "14px",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "#a855f7")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.password ? "#ef4444" : "rgba(255,255,255,0.1)")}
+                  onFocus={(e) => (e.target.style.borderColor = AUTH_THEME.teal)}
+                  onBlur={(e) => (e.target.style.borderColor = errors.password ? AUTH_THEME.coral : AUTH_THEME.border)}
                 />
                 <button
                   type="button"
@@ -273,7 +316,7 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
                         key={i}
                         className="h-1 flex-1 rounded-full transition-all duration-300"
                         style={{
-                          background: i <= pwStrength.score ? pwStrength.color : "rgba(255,255,255,0.1)",
+                          background: i <= pwStrength.score ? pwStrength.color : "rgba(246,242,232,0.12)",
                         }}
                       />
                     ))}
@@ -289,11 +332,11 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
 
             {mode === "register" && (
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-0.5 accent-violet-500" required />
-                <span className="text-white/40" style={{ fontSize: "13px", lineHeight: 1.5 }}>
+                <input type="checkbox" className="mt-0.5" style={{ accentColor: AUTH_THEME.teal }} required />
+                <span style={{ color: AUTH_THEME.muted, fontSize: "13px", lineHeight: 1.5 }}>
                   I agree to the{" "}
-                  <span className="text-violet-400">Terms of Service</span> and{" "}
-                  <span className="text-violet-400">Privacy Policy</span>
+                  <span style={{ color: AUTH_THEME.teal }}>Terms of Service</span> and{" "}
+                  <span style={{ color: AUTH_THEME.teal }}>Privacy Policy</span>
                 </span>
               </label>
             )}
@@ -301,13 +344,14 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white py-3.5 rounded-xl transition-all mt-2"
+              className="mt-2 w-full rounded-lg py-3.5 transition-transform hover:-translate-y-0.5"
               style={{
-                background: "linear-gradient(135deg, #7c3aed 0%, #db2777 100%)",
+                background: `linear-gradient(135deg, ${AUTH_THEME.teal} 0%, ${AUTH_THEME.amber} 100%)`,
+                color: "#07100e",
                 fontSize: "15px",
-                fontWeight: 600,
+                fontWeight: 900,
                 opacity: loading ? 0.7 : 1,
-                boxShadow: "0 4px 20px rgba(124, 58, 237, 0.3)",
+                boxShadow: "0 16px 38px rgba(37,208,178,0.16)",
               }}
             >
               {loading
@@ -318,39 +362,31 @@ export function AuthPage({ mode, onModeChange, error, notice, pendingVerificatio
             </button>
 
             <div className="relative flex items-center py-1">
-              <div className="flex-1 border-t border-white/8" />
-              <span className="px-3 text-white/25" style={{ fontSize: "12px" }}>or continue with</span>
-              <div className="flex-1 border-t border-white/8" />
+              <div className="flex-1 border-t" style={{ borderColor: "rgba(246,242,232,0.09)" }} />
+              <span className="px-3" style={{ color: AUTH_THEME.soft, fontSize: "12px" }}>or continue with</span>
+              <div className="flex-1 border-t" style={{ borderColor: "rgba(246,242,232,0.09)" }} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <button
                 type="button"
                 onClick={() => onSocialAuth("google")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all"
-                style={{ fontSize: "14px" }}
+                className="flex items-center justify-center gap-2 rounded-lg border py-3 transition-all hover:bg-white/5"
+                style={{ borderColor: AUTH_THEME.border, color: AUTH_THEME.muted, fontSize: "14px", fontWeight: 800 }}
               >
                 <Chrome size={16} />
                 Google
-              </button>
-              <button
-                type="button"
-                onClick={() => onSocialAuth("apple")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all"
-                style={{ fontSize: "14px" }}
-              >
-                <Apple size={16} />
-                Apple
               </button>
             </div>
           </form>
         </div>
 
-        <p className="text-center text-white/25 mt-6" style={{ fontSize: "13px" }}>
+        <p className="mt-6 text-center" style={{ color: AUTH_THEME.soft, fontSize: "13px" }}>
           {mode === "register" ? "Already have an account? " : "Don't have an account? "}
           <button
             onClick={() => onModeChange(mode === "register" ? "login" : "register")}
-            className="text-violet-400 hover:text-violet-300 transition-colors"
+            className="transition-colors"
+            style={{ color: AUTH_THEME.teal, fontWeight: 800 }}
           >
             {mode === "register" ? "Sign in" : "Create one free"}
           </button>

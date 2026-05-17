@@ -27,7 +27,6 @@ import {
   MessageSquare,
   PenLine,
   Phone,
-  ShieldCheck,
   ShoppingBag,
   Send,
   Tv,
@@ -41,6 +40,7 @@ import {
 import type { UserProfile, LinkItem, ProfileTheme, WidgetItem } from "../App";
 import { subscribeWidget, trackClick, voteWidget } from "../backend";
 import { MUSIC_TRACK_PRESETS } from "../widgetPlugins";
+import { LuffaIcon, SignalIcon, TelegramIcon, ThreemaIcon, ViberIcon, WhatsAppIcon } from "./brandIcons";
 
 interface PublicProfileProps {
   profile: UserProfile;
@@ -64,11 +64,13 @@ const PLATFORM_CONFIG: Record<string, { icon: React.ComponentType<any>; color: s
   soundcloud: { icon: Music, color: "#ff5500" },
   twitch: { icon: Tv, color: "#9146FF" },
   discord: { icon: Gamepad2, color: "#5865F2" },
-  telegram: { icon: Send, color: "#2AABEE" },
-  signal: { icon: ShieldCheck, color: "#3A76F0" },
-  threema: { icon: ShieldCheck, color: "#22c55e" },
+  telegram: { icon: TelegramIcon, color: "#2AABEE" },
+  signal: { icon: SignalIcon, color: "#3A76F0" },
+  threema: { icon: ThreemaIcon, color: "#22c55e" },
+  luffa: { icon: LuffaIcon, color: "#7c5cff" },
+  viber: { icon: ViberIcon, color: "#7360F2" },
   potato: { icon: MessageSquare, color: "#f59e0b" },
-  whatsapp: { icon: MessageCircle, color: "#25D366" },
+  whatsapp: { icon: WhatsAppIcon, color: "#25D366" },
   writing: { icon: PenLine, color: "#f8fafc" },
   design: { icon: Camera, color: "#ea4c89" },
   figma: { icon: PenLine, color: "#a78bfa" },
@@ -249,11 +251,11 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
   const getShellStyle = (): React.CSSProperties => ({
     ...getBackgroundStyle(),
     minHeight: isPreview ? "100%" : "100dvh",
-    height: isPreview ? "100%" : "100dvh",
+    height: isPreview ? "100%" : undefined,
     width: "100%",
     overflowX: "hidden",
-    overflowY: isPreview ? "hidden" : "auto",
-    overscrollBehaviorY: "contain",
+    overflowY: isPreview ? "hidden" : "visible",
+    overscrollBehaviorY: isPreview ? "contain" : "auto",
     WebkitOverflowScrolling: "touch",
     fontFamily: `'${theme.fontFamily}', system-ui, sans-serif`,
     boxSizing: "border-box",
@@ -264,7 +266,7 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
     minHeight: isPreview ? "100%" : "100dvh",
     width: "100%",
     boxSizing: "border-box",
-    paddingTop: isPreview ? "28px" : "max(28px, calc(env(safe-area-inset-top) + 18px))",
+    paddingTop: isPreview ? "56px" : "max(28px, calc(env(safe-area-inset-top) + 18px))",
     paddingRight: isPreview ? "14px" : "max(16px, calc(env(safe-area-inset-right) + 16px))",
     paddingBottom: isPreview ? "28px" : "max(40px, calc(env(safe-area-inset-bottom) + 28px))",
     paddingLeft: isPreview ? "14px" : "max(16px, calc(env(safe-area-inset-left) + 16px))",
@@ -312,13 +314,14 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
     const base: React.CSSProperties = {
       color: theme.textColor,
       fontSize: isPreview ? "12px" : "15px",
-      fontWeight: 500,
+      fontWeight: 600,
       transition: "all 0.2s ease",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      padding: isPreview ? "8px 14px" : "14px 20px",
+      padding: isPreview ? "9px 12px" : "14px 18px",
       width: "100%",
+      minHeight: isPreview ? "42px" : "58px",
       minWidth: 0,
       boxSizing: "border-box",
       textDecoration: "none",
@@ -389,49 +392,25 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
   };
 
   const getEntrance = (index = 0) => {
-    const pack = theme.animationPack ?? "smooth";
-    const delay = pack === "minimal" ? 0 : index * 0.045;
-    const configs = {
-      minimal: { initial: { opacity: 0 }, transition: { duration: 0.16, delay } },
-      smooth: { initial: { opacity: 0, y: isPreview ? 8 : 16 }, transition: { duration: 0.32, delay } },
-      pop: { initial: { opacity: 0, y: isPreview ? 10 : 18, scale: 0.96 }, transition: { duration: 0.38, delay, type: "spring" as const, stiffness: 360, damping: 22 } },
-      cinematic: { initial: { opacity: 0, y: isPreview ? 14 : 26, filter: "blur(8px)" }, transition: { duration: 0.55, delay: delay + 0.04 } },
-      neon: { initial: { opacity: 0, y: isPreview ? 8 : 16, scale: 0.98 }, transition: { duration: 0.34, delay } },
+    const delay = index * 0.045;
+    return {
+      initial: { opacity: 0, y: isPreview ? 8 : 16 },
+      transition: { duration: 0.32, delay },
     };
-    return configs[pack];
   };
 
   const getHoverMotion = (effect: LinkItem["hoverEffect"]) => {
-    const neonGlow = theme.animationPack === "neon" ? `, 0 0 24px ${theme.primaryColor}55` : "";
-    if (effect === "expand") return { scale: theme.animationPack === "pop" ? 1.04 : 1.02 };
-    if (effect === "bounce") return { y: theme.animationPack === "pop" ? -5 : -3 };
-    if (effect === "glow") return { boxShadow: `0 0 20px ${theme.primaryColor}50${neonGlow}` };
+    if (effect === "expand") return { scale: 1.025 };
+    if (effect === "bounce") return { y: -4 };
+    if (effect === "glow") return { boxShadow: `0 0 20px ${theme.primaryColor}50` };
     if (effect === "tilt") return { rotate: -1.5, scale: 1.015 };
     if (effect === "slide") return { x: 5 };
     return {};
   };
 
   const renderLinkIcon = (Icon: React.ComponentType<any>, color: string) => {
-    const iconStyle = theme.iconStyle ?? "brand";
-    const size = isPreview ? 13 : 18;
-    const iconColor = iconStyle === "mono" ? theme.textColor : color;
-    if (iconStyle === "duotone" || iconStyle === "boxed") {
-      return (
-        <span
-          className="mr-3 inline-flex shrink-0 items-center justify-center"
-          style={{
-            width: isPreview ? "22px" : "30px",
-            height: isPreview ? "22px" : "30px",
-            borderRadius: iconStyle === "boxed" ? "8px" : "999px",
-            background: iconStyle === "boxed" ? `${color}28` : `${theme.primaryColor}20`,
-            border: `1px solid ${iconStyle === "boxed" ? `${color}45` : `${theme.primaryColor}35`}`,
-          }}
-        >
-          <Icon size={size} style={{ color: iconColor }} />
-        </span>
-      );
-    }
-    return <Icon size={size} style={{ color: iconColor, marginRight: isPreview ? "8px" : "12px", flexShrink: 0 }} />;
+    const size = isPreview ? 18 : 25;
+    return <Icon size={size} style={{ color, marginRight: isPreview ? "10px" : "14px", flexShrink: 0 }} />;
   };
 
   const avatarSize = isPreview ? 60 : 96;
@@ -451,15 +430,11 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
       {theme.backgroundType === "animated" && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className="absolute rounded-full"
+            className="absolute"
             style={{
-              top: "-20%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "120%",
-              height: "60%",
-              background: `radial-gradient(ellipse, ${theme.primaryColor}30 0%, transparent 70%)`,
-              animation: theme.animationPack === "minimal" ? "none" : "pulse 3s ease-in-out infinite",
+              inset: 0,
+              background: `linear-gradient(130deg, ${theme.primaryColor}24, transparent 38%), linear-gradient(230deg, ${theme.textColor}10, transparent 42%)`,
+              animation: "pulse 3s ease-in-out infinite",
             }}
           />
         </div>
@@ -467,15 +442,13 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute" style={{ inset: 0, ...getPatternStyle() }} />
         <div
-          className="absolute rounded-full"
+          className="absolute"
           style={{
-            top: isPreview ? "54px" : "90px",
-            left: "50%",
-            width: isPreview ? "170px" : "280px",
-            height: isPreview ? "170px" : "280px",
-            transform: "translateX(-50%)",
-            background: `radial-gradient(circle, ${profile.avatarColor}35 0%, transparent 68%)`,
-            filter: "blur(8px)",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: isPreview ? "150px" : "240px",
+            background: `linear-gradient(180deg, ${profile.avatarColor}24, transparent)`,
           }}
         />
       </div>
@@ -534,7 +507,7 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
               style={{
                 inset: isPreview ? "-5px" : "-8px",
                 border: `1px solid ${theme.primaryColor}55`,
-                animation: theme.animationPack === "minimal" ? "none" : `profileOrbit ${theme.animationPack === "neon" ? "3.8s" : "7s"} linear infinite`,
+                animation: "profileOrbit 7s linear infinite",
               }}
             />
             {profile.initials}
@@ -992,7 +965,7 @@ function WidgetRenderer({
               <button
                 onClick={handleSubscribe}
                 className="profile-widget-action px-4 py-2 rounded-full text-white flex-shrink-0"
-                style={{ background: "#7c3aed", fontSize: isPreview ? "10px" : "13px", fontWeight: 600 }}
+                style={{ background: "#25d0b2", color: "#07100e", fontSize: isPreview ? "10px" : "13px", fontWeight: 700 }}
               >
                 {message === "Subscribed" ? <Check size={15} /> : "Join"}
               </button>

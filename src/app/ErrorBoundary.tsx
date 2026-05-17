@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="min-h-full flex items-center justify-center bg-[#030007] px-6" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      <div className="min-h-dvh flex items-center justify-center bg-[#0b100f] px-6" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
         <div className="max-w-md text-center">
           <h1 className="text-white mb-3" style={{ fontSize: "24px", fontWeight: 700 }}>
             Something went wrong
@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <button
             onClick={() => window.location.reload()}
             className="rounded-xl px-5 py-3 text-white"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", fontSize: "14px", fontWeight: 700 }}
+            style={{ background: "linear-gradient(135deg, #25d0b2, #f5b84b)", color: "#07100e", fontSize: "14px", fontWeight: 800 }}
           >
             Reload
           </button>

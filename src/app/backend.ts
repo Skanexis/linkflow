@@ -230,7 +230,7 @@ function initialsFromUsername(username: string) {
   return username.slice(0, 2).toUpperCase();
 }
 
-function assertUrl(value: string, field = "URL", protocols = ["http:", "https:", "mailto:", "tel:"]) {
+function assertUrl(value: string, field = "URL", protocols = ["http:", "https:", "mailto:", "tel:", "sgnl:", "threema:", "potato:", "viber:", "luffa:"]) {
   try {
     const url = new URL(value);
     if (!protocols.includes(url.protocol)) throw new Error();
@@ -262,6 +262,8 @@ export function detectPlatform(url: string): string {
   if (u.includes("telegram.me") || u.includes("t.me") || u.includes("telegram.dog")) return "telegram";
   if (u.includes("signal.me") || u.includes("signal.group") || u.startsWith("sgnl://")) return "signal";
   if (u.includes("threema.id") || u.includes("threema.ch") || u.startsWith("threema://")) return "threema";
+  if (u.includes("luffa.im") || u.startsWith("luffa://")) return "luffa";
+  if (u.includes("viber.com") || u.includes("vb.me") || u.startsWith("viber://")) return "viber";
   if (u.includes("potato.im") || u.includes("pt.im") || u.startsWith("potato://")) return "potato";
   if (u.includes("wa.me") || u.includes("whatsapp.com")) return "whatsapp";
   if (u.includes("medium.com") || u.includes("substack.com")) return "writing";
@@ -346,7 +348,7 @@ export async function login(input: { email: string; password: string }) {
   return delay(snapshotForUser(state, user));
 }
 
-export async function socialLogin(provider: "google" | "apple") {
+export async function socialLogin(provider: "google") {
   if (hasApiBackend()) {
     return apiAuth("/auth/social", { provider });
   }

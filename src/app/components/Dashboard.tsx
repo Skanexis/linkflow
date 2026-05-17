@@ -47,6 +47,20 @@ const NAV_ITEMS: { id: Section; icon: React.ComponentType<any>; label: string }[
   { id: "widgets", icon: Puzzle, label: "Widgets" },
 ];
 
+const DASH_THEME = {
+  bg: "#0b100f",
+  sidebar: "#0f1614",
+  panel: "#111916",
+  panelSoft: "rgba(246, 242, 232, 0.055)",
+  border: "rgba(246, 242, 232, 0.1)",
+  text: "#f6f2e8",
+  muted: "rgba(246, 242, 232, 0.58)",
+  soft: "rgba(246, 242, 232, 0.34)",
+  teal: "#25d0b2",
+  amber: "#f5b84b",
+  coral: "#ff7a59",
+};
+
 export function Dashboard({
   profile,
   links,
@@ -88,7 +102,7 @@ export function Dashboard({
     <div
       className="h-full overflow-hidden"
       style={{
-        background: "#07070f",
+        background: DASH_THEME.bg,
         fontFamily: "'Inter', system-ui, sans-serif",
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
@@ -100,9 +114,9 @@ export function Dashboard({
         style={{
           width: isMobile ? "100%" : `${sidebarWidth}px`,
           height: isMobile ? "auto" : "100%",
-          background: "#0a0a16",
-          borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
-          borderBottom: isMobile ? "1px solid rgba(255,255,255,0.05)" : "none",
+          background: DASH_THEME.sidebar,
+          borderRight: isMobile ? "none" : `1px solid ${DASH_THEME.border}`,
+          borderBottom: isMobile ? `1px solid ${DASH_THEME.border}` : "none",
           display: "flex",
           flexDirection: isMobile ? "row" : "column",
           alignItems: isMobile ? "center" : "stretch",
@@ -112,25 +126,25 @@ export function Dashboard({
         <div
           className="flex items-center gap-2 px-5 py-5"
           style={{
-            borderBottom: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
+            borderBottom: isMobile ? "none" : `1px solid ${DASH_THEME.border}`,
             padding: isTablet ? "14px" : "20px",
             justifyContent: isTablet && !isMobile ? "center" : "flex-start",
           }}
         >
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", boxShadow: "0 0 16px rgba(124,58,237,0.4)" }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: `linear-gradient(135deg, ${DASH_THEME.teal}, ${DASH_THEME.amber})`, color: "#07100e", boxShadow: "0 10px 28px rgba(37,208,178,0.16)" }}
           >
-            <Sparkles size={14} className="text-white" />
+            <Sparkles size={14} />
           </div>
-          <span className="text-white" style={{ fontWeight: 700, fontSize: "16px", display: isTablet ? "none" : "inline" }}>
+          <span style={{ color: DASH_THEME.text, fontWeight: 800, fontSize: "16px", display: isTablet ? "none" : "inline" }}>
             LinkFlow
           </span>
         </div>
 
         {/* Profile mini */}
         {!isTablet && (
-        <div className="px-4 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="px-4 py-4" style={{ borderBottom: `1px solid ${DASH_THEME.border}` }}>
           <div className="flex items-center gap-3">
             <div
               className="rounded-full flex items-center justify-center text-white flex-shrink-0"
@@ -146,10 +160,10 @@ export function Dashboard({
               {profile.initials}
             </div>
             <div className="min-w-0">
-              <p className="text-white truncate" style={{ fontSize: "13px", fontWeight: 500 }}>
+              <p className="truncate" style={{ color: DASH_THEME.text, fontSize: "13px", fontWeight: 700 }}>
                 {profile.displayName}
               </p>
-              <p className="truncate" style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)" }}>
+              <p className="truncate" style={{ fontSize: "11px", color: DASH_THEME.soft }}>
                 @{profile.username}
               </p>
             </div>
@@ -178,10 +192,10 @@ export function Dashboard({
                 style={{
                   fontSize: "13px",
                   fontWeight: active ? 600 : 400,
-                  background: active ? "rgba(168, 85, 247, 0.15)" : "transparent",
-                  color: active ? "#c084fc" : "rgba(255,255,255,0.45)",
-                  borderLeft: !isMobile && active ? "2px solid #a855f7" : "2px solid transparent",
-                  borderBottom: isMobile && active ? "2px solid #a855f7" : "2px solid transparent",
+                  background: active ? "rgba(37, 208, 178, 0.12)" : "transparent",
+                  color: active ? "#99f6e4" : DASH_THEME.muted,
+                  borderLeft: !isMobile && active ? `2px solid ${DASH_THEME.teal}` : "2px solid transparent",
+                  borderBottom: isMobile && active ? `2px solid ${DASH_THEME.teal}` : "2px solid transparent",
                   gap: isTablet ? 0 : "12px",
                   justifyContent: isTablet ? "center" : "flex-start",
                   minWidth: isMobile ? "48px" : undefined,
@@ -189,10 +203,10 @@ export function Dashboard({
                   padding: isTablet ? "10px" : "10px 12px",
                 }}
                 onMouseEnter={(e) => {
-                  if (!active) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
+                  if (!active) (e.currentTarget as HTMLElement).style.color = DASH_THEME.text;
                 }}
                 onMouseLeave={(e) => {
-                  if (!active) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.45)";
+                  if (!active) (e.currentTarget as HTMLElement).style.color = DASH_THEME.muted;
                 }}
               >
                 <item.icon size={15} />
@@ -206,7 +220,7 @@ export function Dashboard({
         <div
           className="px-3 pb-5 space-y-0.5"
           style={{
-            borderTop: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
+            borderTop: isMobile ? "none" : `1px solid ${DASH_THEME.border}`,
             paddingTop: isMobile ? "0" : "12px",
             paddingBottom: isMobile ? "0" : "20px",
             display: isMobile ? "flex" : "block",
@@ -215,9 +229,9 @@ export function Dashboard({
           <button
             onClick={onViewProfile}
             className="flex items-center rounded-xl transition-all text-left"
-            style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", gap: isTablet ? 0 : "12px", justifyContent: isTablet ? "center" : "flex-start", width: isMobile ? "44px" : "100%", padding: isTablet ? "10px" : "10px 12px" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)")}
+            style={{ fontSize: "13px", color: DASH_THEME.muted, gap: isTablet ? 0 : "12px", justifyContent: isTablet ? "center" : "flex-start", width: isMobile ? "44px" : "100%", padding: isTablet ? "10px" : "10px 12px" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = DASH_THEME.text)}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = DASH_THEME.muted)}
           >
             <ExternalLink size={14} />
             {!isTablet && "View live page"}
@@ -225,13 +239,13 @@ export function Dashboard({
           <button
             onClick={onLogout}
             className="flex items-center rounded-xl transition-all text-left"
-            style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", gap: isTablet ? 0 : "12px", justifyContent: isTablet ? "center" : "flex-start", width: isMobile ? "44px" : "100%", padding: isTablet ? "10px" : "10px 12px" }}
+            style={{ fontSize: "13px", color: DASH_THEME.soft, gap: isTablet ? 0 : "12px", justifyContent: isTablet ? "center" : "flex-start", width: isMobile ? "44px" : "100%", padding: isTablet ? "10px" : "10px 12px" }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "#f87171";
-              (e.currentTarget as HTMLElement).style.background = "rgba(239, 68, 68, 0.08)";
+              (e.currentTarget as HTMLElement).style.color = DASH_THEME.coral;
+              (e.currentTarget as HTMLElement).style.background = "rgba(255, 122, 89, 0.08)";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.3)";
+              (e.currentTarget as HTMLElement).style.color = DASH_THEME.soft;
               (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
@@ -251,10 +265,10 @@ export function Dashboard({
             {/* Header */}
             <div className="mb-7 flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-white" style={{ fontSize: "22px", fontWeight: 700 }}>
+                <h1 style={{ color: DASH_THEME.text, fontSize: "22px", fontWeight: 900 }}>
                   {currentSection.label}
                 </h1>
-                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>
+                <p style={{ fontSize: "13px", color: DASH_THEME.soft, marginTop: "2px" }}>
                   {section === "links" && `${links.filter((l) => l.visible).length} of ${links.length} links visible`}
                   {section === "widgets" && `${widgets.filter((w) => w.visible).length} active widgets`}
                   {section === "appearance" && "Customize your page's look and feel"}
@@ -267,12 +281,12 @@ export function Dashboard({
                 className="flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl transition-all"
                 style={{
                   fontSize: "13px",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.5)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: DASH_THEME.panelSoft,
+                  color: DASH_THEME.muted,
+                  border: `1px solid ${DASH_THEME.border}`,
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.9)")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.5)")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = DASH_THEME.text)}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = DASH_THEME.muted)}
               >
                 {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
                 {showPreview ? "Hide" : "Show"} preview
@@ -314,20 +328,20 @@ export function Dashboard({
             style={{
               width: previewPanelWidth,
               maxHeight: isMobile ? "58%" : "none",
-              background: "#060610",
-              borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
-              borderTop: isMobile ? "1px solid rgba(255,255,255,0.05)" : "none",
+              background: "#0a0f0e",
+              borderLeft: isMobile ? "none" : `1px solid ${DASH_THEME.border}`,
+              borderTop: isMobile ? `1px solid ${DASH_THEME.border}` : "none",
             }}
           >
             <div
               className="flex items-center justify-between px-4 py-3"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ borderBottom: `1px solid ${DASH_THEME.border}` }}
             >
               <span
                 style={{
                   fontSize: "11px",
                   fontWeight: 600,
-                  color: "rgba(255,255,255,0.35)",
+                  color: DASH_THEME.soft,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                 }}
@@ -335,9 +349,9 @@ export function Dashboard({
                 Live Preview
               </span>
               <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,95,87,0.5)" }} />
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,189,46,0.5)" }} />
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(40,200,64,0.5)" }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.coral}99` }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.amber}99` }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: `${DASH_THEME.teal}99` }} />
               </div>
             </div>
 
@@ -353,7 +367,7 @@ export function Dashboard({
                 <div
                   className="overflow-hidden rounded-[36px]"
                   style={{
-                    border: "6px solid #1a1a2e",
+                    border: "6px solid #17201d",
                     boxShadow: "0 24px 60px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.05)",
                     height: `${phoneFrameHeight}px`,
                     width: `${phoneFrameWidth}px`,
@@ -381,7 +395,7 @@ export function Dashboard({
                 {/* Home indicator */}
                 <div
                   className="mx-auto mt-2 rounded-full"
-                  style={{ width: "60px", height: "4px", background: "rgba(255,255,255,0.15)" }}
+                  style={{ width: "60px", height: "4px", background: "rgba(246,242,232,0.16)" }}
                 />
               </div>
             </div>
@@ -394,12 +408,12 @@ export function Dashboard({
                 style={{
                   fontSize: "13px",
                   fontWeight: 500,
-                  background: "rgba(168, 85, 247, 0.12)",
-                  color: "#c084fc",
-                  border: "1px solid rgba(168, 85, 247, 0.2)",
+                  background: "rgba(37, 208, 178, 0.12)",
+                  color: "#99f6e4",
+                  border: "1px solid rgba(37, 208, 178, 0.24)",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(168, 85, 247, 0.2)")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(168, 85, 247, 0.12)")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(37, 208, 178, 0.18)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(37, 208, 178, 0.12)")}
               >
                 Open full page →
               </button>

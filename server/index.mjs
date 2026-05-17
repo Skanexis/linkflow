@@ -98,7 +98,14 @@ const profileSchema = z.object({
   initials: z.string().trim().min(1).max(3).optional(),
 });
 
-const urlSchema = z.string().trim().url();
+const allowedLinkProtocols = new Set(["http:", "https:", "mailto:", "tel:", "sgnl:", "threema:", "potato:", "viber:", "luffa:"]);
+const urlSchema = z.string().trim().refine((value) => {
+  try {
+    return allowedLinkProtocols.has(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}, "Invalid URL");
 const linkSchema = z.object({
   title: z.string().trim().min(1).max(90),
   url: urlSchema,
@@ -182,6 +189,8 @@ function detectPlatform(url) {
   if (u.includes("telegram.me") || u.includes("t.me") || u.includes("telegram.dog")) return "telegram";
   if (u.includes("signal.me") || u.includes("signal.group") || u.startsWith("sgnl://")) return "signal";
   if (u.includes("threema.id") || u.includes("threema.ch") || u.startsWith("threema://")) return "threema";
+  if (u.includes("luffa.im") || u.startsWith("luffa://")) return "luffa";
+  if (u.includes("viber.com") || u.includes("vb.me") || u.startsWith("viber://")) return "viber";
   if (u.includes("potato.im") || u.includes("pt.im") || u.startsWith("potato://")) return "potato";
   if (u.includes("wa.me") || u.includes("whatsapp.com")) return "whatsapp";
   if (u.includes("medium.com") || u.includes("substack.com")) return "writing";
@@ -554,7 +563,7 @@ app.get("/api/auth/verify-email", async (req, res, next) => {
 
 app.post("/api/auth/social", authLimiter, async (req, res, next) => {
   try {
-    const input = parse(z.object({ provider: z.enum(["google", "apple"]) }), req.body);
+    const input = parse(z.object({ provider: z.enum(["google"]) }), req.body);
     const payload = await mutateState(async (state) => {
       const email = `${input.provider}@linkflow.local`;
       let user = state.users.find((item) => item.email === email);
