@@ -420,9 +420,12 @@ export function PublicProfile({ profile, links, theme, widgets, onBack, isPrevie
     bio: isPreview ? "11px" : "14px",
   };
 
+  // Check if there's a visible music widget for background animation
+  const hasMusicWidget = visibleWidgets.some((w) => w.type === "music");
+
   return (
     <div
-      className="profile-app-shell relative"
+      className={`profile-app-shell relative ${hasMusicWidget ? "music-playing" : ""}`}
       data-preview={isPreview ? "true" : "false"}
       style={getShellStyle()}
     >
@@ -769,105 +772,82 @@ function WidgetRenderer({
   switch (widget.type) {
     case "music": {
       const track = MUSIC_TRACK_PRESETS.find((item) => item.id === selectedTrackId) ?? getMusicTrack(widget.config);
-      const embedUrl = spotifyEmbedUrl(widget.config.spotifyUrl ?? track.spotifyUrl);
-      if (embedUrl) {
-        return (
-          <div>
-            <div className="profile-widget-adaptive mb-3 flex items-center gap-3">
-              <div
-                className="rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{
-                  width: isPreview ? "34px" : "42px",
-                  height: isPreview ? "34px" : "42px",
-                  background: "#1DB95422",
-                  border: "1px solid #1DB95445",
-                  color: "#1DB954",
-                }}
-              >
-                <Headphones size={isPreview ? 15 : 20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor }}>
-                  {widget.config.song ?? track.song}
-                </p>
-                <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}60` }}>
-                  {widget.config.artist ?? track.artist} · Spotify
-                </p>
-              </div>
+      const spotifyUrl = widget.config.spotifyUrl ?? track.spotifyUrl;
+      const embedUrl = spotifyEmbedUrl(spotifyUrl);
+      
+      return (
+        <div className="w-full">
+          {/* Header with track info */}
+          <div className="mb-4 flex items-center gap-3">
+            <div
+              className="rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
+              style={{
+                width: isPreview ? "40px" : "56px",
+                height: isPreview ? "40px" : "56px",
+                background: `linear-gradient(135deg, #1DB954 0%, #1ed760 100%)`,
+                boxShadow: "0 8px 24px rgba(29, 185, 84, 0.25)",
+              }}
+            >
+              <Music size={isPreview ? 18 : 28} style={{ color: "#ffffff" }} />
             </div>
-            <div className="overflow-hidden rounded-xl" style={{ background: "rgba(0,0,0,0.2)", height: isPreview ? "92px" : "152px" }}>
+            <div className="min-w-0 flex-1">
+              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor, marginBottom: "4px" }}>
+                {widget.config.song ?? track.song}
+              </p>
+              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}70` }}>
+                {widget.config.artist ?? track.artist}
+              </p>
+              <p style={{ fontSize: "11px", color: `${textColor}50`, marginTop: "3px" }}>
+                {track.bpm} BPM
+              </p>
+            </div>
+          </div>
+
+          {/* Spotify embed player */}
+          {embedUrl && (
+            <div 
+              className="w-full overflow-hidden rounded-2xl transition-all hover:shadow-lg"
+              style={{
+                background: "linear-gradient(135deg, rgba(29, 185, 84, 0.1) 0%, rgba(30, 215, 96, 0.05) 100%)",
+                border: "1px solid rgba(29, 185, 84, 0.25)",
+                height: isPreview ? "100px" : "156px",
+                boxShadow: "0 12px 32px rgba(29, 185, 84, 0.15)",
+              }}
+            >
               <iframe
-                title={`${widget.config.song ?? track.song} Spotify player`}
+                title={`${widget.config.song ?? track.song} by ${widget.config.artist ?? track.artist} on Spotify`}
                 src={embedUrl}
                 width="100%"
                 height="100%"
-                className="border-0"
+                style={{
+                  border: "none",
+                  borderRadius: "16px",
+                  display: "block",
+                }}
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                 loading="lazy"
               />
             </div>
-          </div>
-        );
-      }
-      return (
-        <div>
-          <div className="profile-widget-adaptive flex items-center gap-3">
-            <button
-              onClick={() => (isMusicPlaying ? stopMusic() : void playMusic(track.id))}
-              className="rounded-xl flex items-center justify-center flex-shrink-0 transition-transform hover:scale-105"
-              style={{
-                width: isPreview ? "34px" : "48px",
-                height: isPreview ? "34px" : "48px",
-                background: `${track.color}22`,
-                border: `1px solid ${track.color}45`,
-                color: track.color,
-              }}
-            >
-              {isMusicPlaying ? <Pause size={isPreview ? 14 : 20} /> : <Play size={isPreview ? 14 : 20} />}
-            </button>
-            <div className="min-w-0 flex-1">
-              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
-                {track.song}
-              </p>
-              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}60` }}>
-                {track.artist} · {track.bpm} BPM
-              </p>
-            </div>
-            <div className="flex gap-1 items-end flex-shrink-0" style={{ height: isPreview ? "28px" : "42px" }}>
-              {levels.map((h, i) => (
-                <div
-                  key={i}
-                  className="rounded-full"
-                  style={{
-                    width: isPreview ? "3px" : "4px",
-                    height: `${Math.max(isPreview ? 6 : 10, h * (isPreview ? 0.34 : 0.52))}px`,
-                    background: `linear-gradient(to top, ${track.color}, ${textColor})`,
-                    opacity: isMusicPlaying || isPreview ? 0.85 : 0.35,
-                    transition: "height 80ms linear",
-                    animation: isMusicPlaying ? undefined : `pulse ${0.7 + i * 0.08}s ease-in-out infinite alternate`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="profile-widget-auto-grid mt-3 grid grid-cols-2 gap-2">
-              {MUSIC_TRACK_PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => void playMusic(item.id)}
-                  className="rounded-xl px-3 py-2 text-left transition-all"
-                  style={{
-                    border: `1px solid ${selectedTrackId === item.id ? item.color : `${textColor}18`}`,
-                    background: selectedTrackId === item.id ? `${item.color}18` : "rgba(255,255,255,0.045)",
-                    color: textColor,
-                    fontSize: "12px",
-                  }}
-                >
-                  <span className="block truncate" style={{ fontWeight: 700 }}>{item.song}</span>
-                  <span style={{ color: `${textColor}55`, fontSize: "10px" }}>{item.bpm} BPM</span>
-                </button>
-              ))}
-          </div>
+          )}
+
+          {/* Spotify link button */}
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-4 rounded-full px-4 py-2 transition-all hover:scale-105"
+            style={{
+              background: "linear-gradient(135deg, #1DB954 0%, #1ed760 100%)",
+              color: "#ffffff",
+              fontSize: "13px",
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 6px 16px rgba(29, 185, 84, 0.3)",
+            }}
+          >
+            <Headphones size={14} />
+            Listen on Spotify
+          </a>
         </div>
       );
     }
@@ -888,18 +868,38 @@ function WidgetRenderer({
       ];
       return (
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Clock size={isPreview ? 10 : 14} style={{ color: `${textColor}60` }} />
-            <p style={{ fontSize: size, color: `${textColor}60` }}>{widget.config.label}</p>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div
+              className="rounded-lg flex items-center justify-center"
+              style={{
+                width: isPreview ? "28px" : "36px",
+                height: isPreview ? "28px" : "36px",
+                background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)",
+              }}
+            >
+              <Clock size={isPreview ? 14 : 18} style={{ color: "#ffffff" }} />
+            </div>
+            <p style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>{widget.config.label}</p>
           </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {units.map(([label, value]) => (
-              <div key={label} className="rounded-xl" style={{ background: `${textColor}0d`, padding: isPreview ? "5px 2px" : "9px 4px" }}>
-                <p style={{ fontSize: isPreview ? "15px" : "26px", fontWeight: 800, color: textColor, lineHeight: 1 }}>
+          <div className="grid grid-cols-4 gap-2">
+            {units.map(([label, value], idx) => (
+              <motion.div
+                key={label}
+                initial={{ scale: 1 }}
+                animate={{ scale: 1 }}
+                className="rounded-xl"
+                style={{
+                  background: `linear-gradient(135deg, ${textColor}18, ${textColor}08)`,
+                  padding: isPreview ? "6px 2px" : "10px 6px",
+                  border: `1px solid ${textColor}20`,
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <p style={{ fontSize: isPreview ? "16px" : "28px", fontWeight: 900, color: textColor, lineHeight: 1, letterSpacing: "-0.5px" }}>
                   {String(value).padStart(label === "days" ? 1 : 2, "0")}
                 </p>
-                <p style={{ fontSize: isPreview ? "7px" : "10px", color: `${textColor}50` }}>{label}</p>
-              </div>
+                <p style={{ fontSize: isPreview ? "8px" : "10px", color: `${textColor}50`, marginTop: "2px", fontWeight: 600 }}>{label}</p>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -910,34 +910,54 @@ function WidgetRenderer({
       const options = widget.config.options ?? ["Option A", "Option B"];
       const votes = widget.config.votes ?? [60, 40];
       const totalVotes = votes.reduce((sum: number, vote: number) => sum + Number(vote || 0), 0) || 1;
+      const pollColors = ["#3b82f6", "#ec4899", "#10b981", "#f59e0b"];
       return (
         <div>
-          <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 600, color: textColor, marginBottom: "8px" }}>
-            {widget.config.question ?? "Quick Poll"}
-          </p>
-          <div className="space-y-1.5">
-            {options.map((opt: string, i: number) => (
-              <button
-                key={i}
-                onClick={() => handleVote(i)}
-                className="block w-full text-left rounded-lg"
-                style={{ padding: isPreview ? "3px 0" : "6px 0", cursor: "pointer" }}
-              >
-                <div className="flex justify-between mb-0.5">
-                  <span style={{ fontSize: size, color: textColor }}>{opt}</span>
-                  <span style={{ fontSize: size, color: `${textColor}60` }}>{Math.round((Number(votes[i] || 0) / totalVotes) * 100)}%</span>
-                </div>
-                <div className="rounded-full overflow-hidden" style={{ height: isPreview ? "3px" : "5px", background: `${textColor}15` }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.round((Number(votes[i] || 0) / totalVotes) * 100)}%`, background: textColor, opacity: 0.6, transition: "width 250ms ease" }}
-                  />
-                </div>
-              </button>
-            ))}
+          <div className="flex items-center gap-2 mb-3">
+            <div
+              className="rounded-lg flex items-center justify-center"
+              style={{
+                width: isPreview ? "28px" : "36px",
+                height: isPreview ? "28px" : "36px",
+                background: "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)",
+              }}
+            >
+              <BarChart2 size={isPreview ? 14 : 18} style={{ color: "#ffffff" }} />
+            </div>
+            <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
+              {widget.config.question ?? "Quick Poll"}
+            </p>
           </div>
-          <p style={{ marginTop: "7px", fontSize: isPreview ? "9px" : "11px", color: `${textColor}45` }}>
-              {totalVotes} votes · tap to vote live
+          <div className="space-y-2">
+            {options.map((opt: string, i: number) => {
+              const percentage = Math.round((Number(votes[i] || 0) / totalVotes) * 100);
+              const color = pollColors[i % pollColors.length];
+              return (
+                <motion.button
+                  key={i}
+                  onClick={() => handleVote(i)}
+                  whileHover={{ scale: 1.02 }}
+                  className="block w-full text-left rounded-xl overflow-hidden transition-all"
+                  style={{ padding: isPreview ? "6px 8px" : "10px 12px", cursor: "pointer", background: `${color}08`, border: `1px solid ${color}25` }}
+                >
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span style={{ fontSize: size, color: textColor, fontWeight: 500 }}>{opt}</span>
+                    <span style={{ fontSize: size, color, fontWeight: 700 }}>{percentage}%</span>
+                  </div>
+                  <div className="rounded-full overflow-hidden" style={{ height: isPreview ? "4px" : "6px", background: `${textColor}12` }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${percentage}%` }}
+                      className="h-full rounded-full"
+                      style={{ background: `linear-gradient(90deg, ${color}, ${color}dd)`, boxShadow: `0 0 12px ${color}40` }}
+                    />
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+          <p style={{ marginTop: "10px", fontSize: isPreview ? "10px" : "12px", color: `${textColor}45`, fontWeight: 500 }}>
+            {totalVotes} votes
           </p>
         </div>
       );
@@ -945,33 +965,70 @@ function WidgetRenderer({
 
     case "email": {
       return (
-        <div className="profile-widget-adaptive profile-widget-email flex items-center gap-3 relative">
-          <Mail size={isPreview ? 14 : 20} style={{ color: `${textColor}70`, flexShrink: 0 }} />
-          <div className="flex-1 min-w-0">
-            <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 600, color: textColor }}>
-              {widget.config.label ?? "Subscribe for updates"}
-            </p>
-            <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}50` }}>Join {widget.config.count ?? "1,200+"} subscribers</p>
+        <div className="w-full">
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{
+                width: isPreview ? "28px" : "36px",
+                height: isPreview ? "28px" : "36px",
+                background: "linear-gradient(135deg, #ec4899 0%, #f472b6 100%)",
+              }}
+            >
+              <Mail size={isPreview ? 14 : 18} style={{ color: "#ffffff" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
+                {widget.config.label ?? "Subscribe"}
+              </p>
+              <p style={{ fontSize: size, color: `${textColor}60`, marginTop: "2px" }}>
+                Join {widget.config.count ?? "1,200+"} subscribers
+              </p>
+            </div>
           </div>
-          <div className={`${isPreview ? "mt-2 flex w-full items-center gap-1.5" : "flex items-center gap-2 flex-shrink-0"} profile-widget-form`}>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@email.com"
-                className="profile-widget-input rounded-full px-3 py-2 text-white outline-none"
-                style={{ width: isPreview ? "100%" : "150px", minWidth: 0, background: "rgba(255,255,255,0.1)", border: `1px solid ${textColor}20`, fontSize: isPreview ? "10px" : "12px" }}
-              />
-              <button
-                onClick={handleSubscribe}
-                className="profile-widget-action px-4 py-2 rounded-full text-white flex-shrink-0"
-                style={{ background: "#25d0b2", color: "#07100e", fontSize: isPreview ? "10px" : "13px", fontWeight: 700 }}
-              >
-                {message === "Subscribed" ? <Check size={15} /> : "Join"}
-              </button>
+          <div className={`${isPreview ? "flex flex-col w-full gap-2" : "flex items-center gap-2 w-full"}`}>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="your@email.com"
+              className="rounded-xl px-4 py-3 text-white outline-none flex-1 transition-all"
+              style={{
+                minWidth: 0,
+                background: `linear-gradient(135deg, ${textColor}12, ${textColor}06)`,
+                border: `1.5px solid ${textColor}20`,
+                fontSize: isPreview ? "12px" : "14px",
+              }}
+            />
+            <motion.button
+              onClick={handleSubscribe}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="rounded-xl text-white flex-shrink-0 transition-all flex items-center justify-center gap-1.5"
+              style={{
+                background: "linear-gradient(135deg, #ec4899 0%, #f472b6 100%)",
+                padding: isPreview ? "9px 12px" : "12px 18px",
+                fontSize: isPreview ? "12px" : "14px",
+                fontWeight: 700,
+                boxShadow: "0 6px 16px rgba(236, 72, 153, 0.25)",
+              }}
+            >
+              {message === "Subscribed" ? <Check size={15} /> : "Subscribe"}
+            </motion.button>
           </div>
           {message && (
-            <p className="profile-widget-message" style={{ position: isPreview ? "static" : "absolute", right: "20px", bottom: "5px", marginTop: isPreview ? "4px" : undefined, fontSize: isPreview ? "9px" : "11px", color: `${textColor}70` }}>{message}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginTop: "10px",
+                fontSize: isPreview ? "11px" : "12px",
+                color: message === "Subscribed" ? "#10b981" : "#ef4444",
+                fontWeight: 500,
+              }}
+            >
+              {message}
+            </motion.p>
           )}
         </div>
       );
@@ -981,36 +1038,65 @@ function WidgetRenderer({
       const embedUrl = youtubeEmbedUrl(widget.config.url);
       return (
         <div>
-          <button
+          <motion.button
             onClick={() => setExpandedVideo((value) => !value)}
-            className="profile-widget-adaptive flex items-center gap-3 w-full text-left"
-            style={{ cursor: "pointer" }}
+            whileHover={{ scale: 1.02 }}
+            className="profile-widget-adaptive flex items-center gap-3 w-full text-left rounded-xl transition-all"
+            style={{
+              cursor: "pointer",
+              padding: "12px",
+              background: expandedVideo ? "rgba(255, 0, 0, 0.12)" : "rgba(255, 0, 0, 0.08)",
+              border: `1px solid ${expandedVideo ? "rgba(255, 0, 0, 0.35)" : "rgba(255, 0, 0, 0.20)"}`,
+            }}
           >
             <div
               className="rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ width: isPreview ? "40px" : "64px", height: isPreview ? "24px" : "40px", background: "#FF000025" }}
+              style={{
+                width: isPreview ? "40px" : "52px",
+                height: isPreview ? "28px" : "40px",
+                background: "linear-gradient(135deg, #FF0000 0%, #ff6b6b 100%)",
+                boxShadow: "0 6px 12px rgba(255, 0, 0, 0.2)",
+              }}
             >
-              {expandedVideo ? <Pause size={isPreview ? 12 : 18} style={{ color: "#FF0000" }} /> : <Youtube size={isPreview ? 12 : 18} style={{ color: "#FF0000" }} />}
+              {expandedVideo ? <Pause size={isPreview ? 14 : 18} style={{ color: "#ffffff" }} /> : <Youtube size={isPreview ? 14 : 18} style={{ color: "#ffffff" }} />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
                 {widget.config.title ?? "Latest Video"}
               </p>
-              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}50` }}>
-                {widget.config.views ?? "12K"} views · {expandedVideo ? "playing preview" : "tap to preview"}
+              <p style={{ fontSize: size, color: `${textColor}60`, marginTop: "2px" }}>
+                {widget.config.views ?? "12K"} views
               </p>
             </div>
-          </button>
+          </motion.button>
           {expandedVideo && (
-            <div className="mt-3 overflow-hidden rounded-xl" style={{ aspectRatio: "16 / 9", background: "rgba(0,0,0,0.35)" }}>
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden rounded-xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(255, 0, 0, 0.05))",
+                border: "1px solid rgba(255, 0, 0, 0.20)",
+                aspectRatio: "16 / 9",
+                boxShadow: "0 8px 20px rgba(255, 0, 0, 0.15)",
+              }}
+            >
               {embedUrl && !isPreview ? (
-                <iframe title={widget.config.title ?? "Video"} src={embedUrl} className="size-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                <iframe
+                  title={widget.config.title ?? "Video"}
+                  src={embedUrl}
+                  className="size-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               ) : (
-                <div className="size-full flex items-center justify-center gap-2" style={{ color: textColor, fontSize: isPreview ? "10px" : "13px", textDecoration: "none" }}>
-                  Preview playing <Play size={isPreview ? 11 : 14} />
+                <div className="size-full flex items-center justify-center gap-2" style={{ color: textColor, fontSize: isPreview ? "11px" : "14px" }}>
+                  <Play size={isPreview ? 12 : 16} />
+                  Preview playing
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
       );
@@ -1022,50 +1108,76 @@ function WidgetRenderer({
       const productUrl = safeWidgetUrl(widget.config.url);
       return (
         <div>
-          <div className="profile-widget-adaptive flex items-start gap-3">
+          <div className="flex items-start gap-3">
             <div
-              className="rounded-xl flex items-center justify-center flex-shrink-0"
+              className="rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
               style={{
-                width: isPreview ? "34px" : "46px",
-                height: isPreview ? "34px" : "46px",
-                background: "rgba(34,197,94,0.18)",
+                width: isPreview ? "40px" : "54px",
+                height: isPreview ? "40px" : "54px",
+                background: "linear-gradient(135deg, #22c55e 0%, #4ade80 100%)",
+                boxShadow: "0 8px 20px rgba(34, 197, 94, 0.25)",
               }}
             >
-              <ShoppingBag size={isPreview ? 15 : 21} style={{ color: accent }} />
+              <ShoppingBag size={isPreview ? 18 : 26} style={{ color: "#ffffff" }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="profile-widget-heading-row flex items-start justify-between gap-2">
-                <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor }}>
                   {widget.config.name ?? "Featured Product"}
                 </p>
-                <p style={{ fontSize: titleSize, fontWeight: 800, color: accent, flexShrink: 0 }}>
+                <p style={{ fontSize: titleSize, fontWeight: 800, color: accent, flexShrink: 0, textAlign: "right" }}>
                   {priceValue}
                 </p>
               </div>
-              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}65`, lineHeight: 1.45, marginTop: "3px" }}>
+              <p style={{ fontSize: size, color: `${textColor}65`, lineHeight: 1.5 }}>
                 {widget.config.description ?? "Featured offer"}
               </p>
-              <div className="profile-widget-form mt-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center rounded-full" style={{ background: `${textColor}0d`, border: `1px solid ${textColor}18` }}>
-                    <button onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="p-2" style={{ color: textColor }}><Minus size={13} /></button>
-                    <span style={{ minWidth: "26px", textAlign: "center", color: textColor, fontSize: "13px", fontWeight: 700 }}>{quantity}</span>
-                    <button onClick={() => setQuantity((value) => value + 1)} className="p-2" style={{ color: textColor }}><Plus size={13} /></button>
-                  </div>
-                  {!isPreview && <span style={{ fontSize: "11px", color: `${textColor}50` }}>Instant checkout preview</span>}
-                </div>
             </div>
           </div>
-          {!isPreview && (
-            <a
-              href={productUrl ?? undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex items-center justify-center gap-2 rounded-full text-white"
-              style={{ background: accent, padding: "9px 14px", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}
-            >
-              {widget.config.buttonLabel ?? "View product"} · {quantity} <ExternalLink size={13} />
-            </a>
-          )}
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex items-center rounded-xl border transition-all" style={{ background: `${textColor}08`, border: `1.5px solid ${textColor}18` }}>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                className="p-2"
+                style={{ color: textColor }}
+              >
+                <Minus size={14} />
+              </motion.button>
+              <span style={{ minWidth: "32px", textAlign: "center", color: textColor, fontSize: "14px", fontWeight: 700 }}>
+                {quantity}
+              </span>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setQuantity((value) => value + 1)}
+                className="p-2"
+                style={{ color: textColor }}
+              >
+                <Plus size={14} />
+              </motion.button>
+            </div>
+            {!isPreview && (
+              <motion.a
+                href={productUrl ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl text-white transition-all font-bold"
+                style={{
+                  background: `linear-gradient(135deg, ${accent} 0%, #4ade80 100%)`,
+                  padding: "11px 14px",
+                  fontSize: "13px",
+                  textDecoration: "none",
+                  boxShadow: `0 6px 16px ${accent}30`,
+                }}
+              >
+                {widget.config.buttonLabel ?? "View"} · {quantity}x <ExternalLink size={13} />
+              </motion.a>
+            )}
+          </div>
         </div>
       );
     }
@@ -1074,43 +1186,64 @@ function WidgetRenderer({
       const mapUrl = safeWidgetUrl(widget.config.url, ["http:", "https:"]);
       return (
         <div>
-          <div className="profile-widget-adaptive flex items-center gap-3">
+          <div className="flex items-start gap-3 mb-3">
             <div
-              className="rounded-xl flex items-center justify-center flex-shrink-0"
+              className="rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
               style={{
-                width: isPreview ? "34px" : "46px",
-                height: isPreview ? "34px" : "46px",
-                background: "rgba(249,115,22,0.18)",
+                width: isPreview ? "40px" : "52px",
+                height: isPreview ? "40px" : "52px",
+                background: "linear-gradient(135deg, #f97316 0%, #fb923c 100%)",
+                boxShadow: "0 8px 20px rgba(249, 115, 22, 0.25)",
               }}
             >
-              <MapPin size={isPreview ? 15 : 21} style={{ color: "#f97316" }} />
+              <MapPin size={isPreview ? 18 : 24} style={{ color: "#ffffff" }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
+              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor }}>
                 {widget.config.place ?? "Location"}
               </p>
-              <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}60`, lineHeight: 1.4 }}>
+              <p style={{ fontSize: size, color: `${textColor}65`, lineHeight: 1.5, marginTop: "3px" }}>
                 {widget.config.address ?? "Address"}
               </p>
             </div>
-            {!isPreview && (
-              <a
-                href={mapUrl ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full flex items-center gap-1.5"
-                style={{ color: textColor, border: `1px solid ${textColor}25`, padding: "7px 10px", fontSize: "12px", textDecoration: "none" }}
-              >
-                <Navigation size={12} /> Route
-              </a>
-            )}
           </div>
-          <div className="mt-3 rounded-xl overflow-hidden relative" style={{ height: isPreview ? "56px" : "92px", background: "linear-gradient(135deg, rgba(249,115,22,0.22), rgba(59,130,246,0.14))" }}>
-              <div className="absolute" style={{ inset: "18px 0 auto 0", height: "2px", background: `${textColor}20`, transform: "rotate(-8deg)" }} />
-              <div className="absolute" style={{ inset: "54px 0 auto 0", height: "2px", background: `${textColor}18`, transform: "rotate(11deg)" }} />
-              <div className="absolute rounded-full" style={{ left: "54%", top: "32px", width: "20px", height: "20px", background: "#f97316", boxShadow: "0 0 0 8px rgba(249,115,22,0.18)" }} />
-              <p style={{ position: "absolute", left: "14px", bottom: "10px", color: `${textColor}70`, fontSize: isPreview ? "9px" : "11px" }}>Live venue card</p>
+          <div
+            className="relative rounded-xl overflow-hidden"
+            style={{
+              height: isPreview ? "72px" : "120px",
+              background: "linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(59, 130, 246, 0.08))",
+              border: "1px solid rgba(249, 115, 22, 0.20)",
+              boxShadow: "inset 0 1px 2px rgba(249, 115, 22, 0.10)",
+            }}
+          >
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="absolute rounded-full" style={{ width: "24px", height: "24px", background: "#f97316", boxShadow: "0 0 0 12px rgba(249, 115, 22, 0.15), 0 4px 12px rgba(249, 115, 22, 0.25)" }} />
+              <p style={{ position: "absolute", bottom: "12px", color: `${textColor}60`, fontSize: isPreview ? "10px" : "12px", fontWeight: 600 }}>
+                📍 Live location
+              </p>
             </div>
+          </div>
+          {!isPreview && mapUrl && (
+            <motion.a
+              href={mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="mt-3 flex items-center justify-center gap-2 rounded-xl text-white transition-all"
+              style={{
+                background: "linear-gradient(135deg, #f97316 0%, #fb923c 100%)",
+                padding: "11px 14px",
+                fontSize: "13px",
+                fontWeight: 700,
+                textDecoration: "none",
+                boxShadow: "0 6px 16px rgba(249, 115, 22, 0.25)",
+              }}
+            >
+              <Navigation size={14} />
+              Get Directions
+            </motion.a>
+          )}
         </div>
       );
     }
@@ -1118,49 +1251,65 @@ function WidgetRenderer({
     case "chat": {
       const messageHref = chatHref(widget.config.url, chatText);
       return (
-        <div className="profile-widget-adaptive profile-widget-chat flex items-start gap-3">
-          <div
-            className="rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              width: isPreview ? "34px" : "46px",
-              height: isPreview ? "34px" : "46px",
-              background: "rgba(6,182,212,0.18)",
-            }}
-          >
-            <MessageCircle size={isPreview ? 15 : 21} style={{ color: "#06b6d4" }} />
+        <div className="w-full">
+          <div className="flex items-start gap-3 mb-3">
+            <div
+              className="rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
+              style={{
+                width: isPreview ? "40px" : "52px",
+                height: isPreview ? "40px" : "52px",
+                background: "linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)",
+                boxShadow: "0 8px 20px rgba(6, 182, 212, 0.25)",
+              }}
+            >
+              <MessageCircle size={isPreview ? 18 : 24} style={{ color: "#ffffff" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 800, color: textColor }}>
+                {widget.config.headline ?? "Have a question?"}
+              </p>
+              <p style={{ fontSize: size, color: `${textColor}65`, lineHeight: 1.5, marginTop: "3px" }}>
+                {widget.config.message ?? "Send me a quick message."}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="profile-widget-title" style={{ fontSize: titleSize, fontWeight: 700, color: textColor }}>
-              {widget.config.headline ?? "Have a question?"}
-            </p>
-            <p className="profile-widget-copy" style={{ fontSize: size, color: `${textColor}60`, lineHeight: 1.4, marginTop: "2px" }}>
-              {widget.config.message ?? "Send me a quick message."}
-            </p>
-              <div className="profile-widget-form mt-3 flex gap-2">
-                <input
-                  value={chatText}
-                  onChange={(event) => {
-                    setChatText(event.target.value);
-                    setSentChat(false);
-                  }}
-                  placeholder="Type a quick message"
-                  className="profile-widget-input min-w-0 flex-1 rounded-full px-3 py-2 outline-none"
-                  style={{ background: `${textColor}0d`, border: `1px solid ${textColor}18`, color: textColor, fontSize: isPreview ? "10px" : "12px" }}
-                />
-                <a
-                  href={isPreview ? undefined : messageHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(event) => {
-                    if (isPreview || !messageHref) event.preventDefault();
-                    setSentChat(true);
-                  }}
-                  className="profile-widget-action inline-flex items-center justify-center rounded-full text-white"
-                  style={{ width: isPreview ? "30px" : "36px", height: isPreview ? "30px" : "36px", background: sentChat ? "#22c55e" : "#06b6d4", textDecoration: "none" }}
-                >
-                  {sentChat ? <Check size={15} /> : <Send size={15} />}
-                </a>
-              </div>
+          <div className="flex gap-2 w-full">
+            <input
+              value={chatText}
+              onChange={(event) => {
+                setChatText(event.target.value);
+                setSentChat(false);
+              }}
+              placeholder="Your message..."
+              className="flex-1 rounded-xl px-4 py-3 text-white outline-none transition-all"
+              style={{
+                minWidth: 0,
+                background: `linear-gradient(135deg, ${textColor}12, ${textColor}06)`,
+                border: `1.5px solid ${textColor}20`,
+                fontSize: isPreview ? "12px" : "14px",
+              }}
+            />
+            <motion.a
+              href={isPreview ? undefined : messageHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => {
+                if (isPreview || !messageHref) event.preventDefault();
+                setSentChat(true);
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="rounded-xl text-white flex items-center justify-center transition-all flex-shrink-0"
+              style={{
+                width: isPreview ? "40px" : "48px",
+                height: isPreview ? "40px" : "48px",
+                background: sentChat ? "linear-gradient(135deg, #10b981 0%, #34d399 100%)" : "linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)",
+                boxShadow: sentChat ? "0 6px 16px rgba(16, 185, 129, 0.3)" : "0 6px 16px rgba(6, 182, 212, 0.3)",
+                textDecoration: "none",
+              }}
+            >
+              {sentChat ? <Check size={18} /> : <Send size={18} />}
+            </motion.a>
           </div>
         </div>
       );
